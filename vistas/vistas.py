@@ -70,37 +70,45 @@ class VistaTasks(Resource):
     @jwt_required()
     def post(self):
         filename = None
+        print("")
         # if 'fileName' in request.files:
         if 'file' in request.files:
             #file = request.files['fileName']
             file = request.files['file']
 
-            # f = request.files['fileName']
-            # basepath = os.path.dirname (__ file__) # La ruta donde se encuentra el archivo actual
-            # upload_path = os.path.join (basepath, 'static \ uploads', secure_filename (f.filename)) #Nota: Si no hay una carpeta, debe crearla primero, de lo contrario se le preguntará que no existe tal ruta
-            # f.save(upload_path)
-            
             # print("file.filename: ", file.filename)
             if file.filename:                
                 #print("vista-tasks-post file.filename: ", file.filename)
                 filename = secure_filename(file.filename)
-                
+
+                format = file.filename[len(file.filename)-3:]
+                newformat = request.form["newFormat"]
+
+                supported = False
+                if format=="mp3" and (newformat=="ogg" or newformat=="wav"):
+                    supported = True
+                elif format=="wav" and (newformat=="ogg" or newformat=="mp3"):
+                    supported = True
+                elif format=="ogg" and (newformat=="wav" or newformat=="mp3"):
+                    supported = True
+
+                if(not supported):
+                    return "Task was not created - formats not supported", 400
+
                 #print("vista-tasks-post secure_filename: ", filename)
                 audio_dir = current_app.config['AUDIO_DIR']
-                
-                #print("vista-tasks-post audio_dir:", audio_dir)
-                #os.makedirs(audio_dir, exist_ok=True)
+                os.makedirs(audio_dir, exist_ok=True)
                 
                 #print("vista-tasks-post os.makedirs")
                 file_path = os.path.join(audio_dir, filename)
-                
                 file.save(file_path)
-                print("file_path:", file_path)
+                #print("file_path:", file_path)
 
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
                 new_task = Task(filename=filename, 
-                                newformat=request.form["newFormat"],
+                                #newformat=request.form["newFormat"],
+                                newformat=newformat,
                                 user=user_id,
                                 status="uploaded", 
                                 upload_date=datetime.now())
@@ -108,26 +116,19 @@ class VistaTasks(Resource):
                 db.session.add(new_task)
                 db.session.commit()
 
-                print(str(datetime.now()) +" converter init ..")
-                song = AudioSegment.from_mp3(file_path)
-                print(str(datetime.now()) +" mp3 ...")
-                song.export(file_path.replace(".mp3", ".ogg"), format="ogg") 
-                print(str(datetime.now()) +" ogg ok")
+                song = None
+                print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] init")
 
-                # song = AudioSegment.from_mp3(file_path)
-                # print(str(datetime.now()) +" mp3 ...")
-                # song.export(file_path.replace(".mp3", ".wav"), format="wav") 
-                # print(str(datetime.now()) +" wav ok")
+                if(format=="mp3"):
+                    song = AudioSegment.from_mp3(file_path)
+                elif(format=="wav"):
+                    song = AudioSegment.from_wav(file_path)
+                elif(format=="ogg"):
+                    song = AudioSegment.from_ogg(file_path)
 
-                # song = AudioSegment.from_mp3(file_path)
-                # print(str(datetime.now()) +" mp3 ...")
-                # song.export(file_path.replace(".mp3", ".wma"), format="wma") 
-                # print(str(datetime.now()) +" wma ok")
-
-                # song = AudioSegment.from_mp3(file_path)
-                # print(str(datetime.now()) +" mp3 ...")
-                # song.export(file_path.replace(".mp3", ".acc"), format="acc") 
-                # print(str(datetime.now()) +" acc ok")
+                #print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] ....")
+                song.export(file_path.replace("."+format, "."+newformat), format=newformat)
+                print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] done")
 
                 return task_schema.dump(new_task)
             return "Task was not created - empty file", 400
