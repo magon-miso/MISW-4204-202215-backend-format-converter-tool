@@ -108,7 +108,7 @@ class VistaTasks(Resource):
                 db.session.add(new_task)
                 db.session.commit()
 
-                print(str(datetime.now()) +" converter init")
+                print(str(datetime.now()) +" converter init ..")
                 song = AudioSegment.from_mp3(file_path)
                 print(str(datetime.now()) +" mp3 ...")
                 song.export(file_path.replace(".mp3", ".ogg"), format="ogg") 
