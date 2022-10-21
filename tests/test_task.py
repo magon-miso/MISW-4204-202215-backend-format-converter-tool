@@ -41,18 +41,18 @@ class TestTask(TestCase):
 
     def test_get_tasks_user(self):
         req_login = self.client.post(self.endpoint_login, 
-                    #data=json.dumps({"username":self.new_user["username"], "password":self.new_user["password"]}),
-                    data=json.dumps({"username":"Cory Cohen", "password":"group"}),
+                    data=json.dumps({"username":self.new_user["username"], "password":self.new_user["password"]}),
+                    #data=json.dumps({"username":"Cory Cohen", "password":"group"}),
                     headers={'Content-Type': 'application/json'})
         resp_login = json.loads(req_login.get_data())
         self.assertEqual(resp_login["mensaje"], "Inicio de sesión exitoso")
 
-        #req_tasks = self.client.get(self.endpoint_tasks, headers=self.headers)
-        req_tasks = self.client.get(self.endpoint_tasks, headers=self.utilities.getHeaders(resp_login["token"]))
+        req_tasks = self.client.get(self.endpoint_tasks, headers=self.headers)
+        #req_tasks = self.client.get(self.endpoint_tasks, headers=self.utilities.getHeaders(resp_login["token"]))
         resp_tasks = json.loads(req_tasks.get_data())
         #print(resp_tasks)
         self.assertEqual(req_tasks.status_code, 200)
-
+        self.assertEqual(len(resp_tasks), 0)
 
     def test_create_task(self):
         req_tasks = self.client.get(self.endpoint_tasks, headers=self.headers)
@@ -60,26 +60,76 @@ class TestTask(TestCase):
         self.assertEqual(req_tasks.status_code, 200)
         self.assertEqual(num_tasks_init, 0)
 
-        #filename = "blaze of glory.mp3"
-        #filename = "boys II men - end of the road.mp3"
-        filename = "metallica - ride the lightning - fade to black metalica.mp3"
-
-        audiofile = open(filename, 'rb')
-        #new_task = dict(file=(audiofile, filename), newformat="wav")
+        filename = "boys II men - end of the road.mp3"
         new_task = {"newFormat": "wav"}
+        audiofile = open(filename, 'rb')
         new_task["file"] = (audiofile, filename)
-
-        req_new_task = self.client.post(self.endpoint_tasks, data=new_task, headers=self.headers, content_type='multipart/form-data') #, follow_redirects=True)
+        req_new_task = self.client.post(self.endpoint_tasks, data=new_task, headers=self.headers, content_type='multipart/form-data') 
         resp_new_task = json.loads(req_new_task.get_data())
         audiofile.close()
-        print("...")
-        print("resp_new_task: ", resp_new_task)
+        #print("resp_new_task: ", resp_new_task)
         self.assertEqual(req_new_task.status_code, 200)
+        self.assertEqual(resp_new_task["status"], "uploaded")
+
+        filename = "boys II men - end of the road.mp3"
+        new_task = {"newFormat": "ogg"}
+        audiofile = open(filename, 'rb')
+        new_task["file"] = (audiofile, filename)
+        req_new_task = self.client.post(self.endpoint_tasks, data=new_task, headers=self.headers, content_type='multipart/form-data') 
+        resp_new_task = json.loads(req_new_task.get_data())
+        audiofile.close()
+        #print("resp_new_task: ", resp_new_task)
+        self.assertEqual(req_new_task.status_code, 200)
+        self.assertEqual(resp_new_task["status"], "uploaded")
+
+        filename = "blaze of glory.wav"
+        new_task = {"newFormat": "mp3"}
+        audiofile = open(filename, 'rb')
+        new_task["file"] = (audiofile, filename)
+        req_new_task = self.client.post(self.endpoint_tasks, data=new_task, headers=self.headers, content_type='multipart/form-data') 
+        resp_new_task = json.loads(req_new_task.get_data())
+        audiofile.close()
+        #print("resp_new_task: ", resp_new_task)
+        self.assertEqual(req_new_task.status_code, 200)
+        self.assertEqual(resp_new_task["status"], "uploaded")
+
+        filename = "blaze of glory.wav"
+        new_task = {"newFormat": "ogg"}
+        audiofile = open(filename, 'rb')
+        new_task["file"] = (audiofile, filename)
+        req_new_task = self.client.post(self.endpoint_tasks, data=new_task, headers=self.headers, content_type='multipart/form-data') 
+        resp_new_task = json.loads(req_new_task.get_data())
+        audiofile.close()
+        #print("resp_new_task: ", resp_new_task)
+        self.assertEqual(req_new_task.status_code, 200)
+        self.assertEqual(resp_new_task["status"], "uploaded") 
+
+        filename = "metallica - fade to black.ogg"
+        new_task = {"newFormat": "mp3"}
+        audiofile = open(filename, 'rb')
+        new_task["file"] = (audiofile, filename)
+        req_new_task = self.client.post(self.endpoint_tasks, data=new_task, headers=self.headers, content_type='multipart/form-data') 
+        resp_new_task = json.loads(req_new_task.get_data())
+        audiofile.close()
+        #print("resp_new_task: ", resp_new_task)
+        self.assertEqual(req_new_task.status_code, 200)
+        self.assertEqual(resp_new_task["status"], "uploaded")
+
+        filename = "metallica - fade to black.ogg"
+        new_task = {"newFormat": "wav"}
+        audiofile = open(filename, 'rb')
+        new_task["file"] = (audiofile, filename)
+        req_new_task = self.client.post(self.endpoint_tasks, data=new_task, headers=self.headers, content_type='multipart/form-data') 
+        resp_new_task = json.loads(req_new_task.get_data())
+        audiofile.close()
+        #print("resp_new_task: ", resp_new_task)
+        self.assertEqual(req_new_task.status_code, 200)
+        self.assertEqual(resp_new_task["status"], "uploaded")
 
         req_tasks = self.client.get(self.endpoint_tasks, headers=self.headers)
         num_tasks_done = len(json.loads(req_tasks.get_data()))
         self.assertEqual(req_tasks.status_code, 200)        
-        self.assertEqual(num_tasks_done, 1)
+        self.assertEqual(num_tasks_done, 6)
 
 '''
     def test_login_usuario_contrasena_incorrecta(self):
@@ -89,13 +139,4 @@ class TestTask(TestCase):
         respuesta_login = json.loads(req_login.get_data())
         self.assertEqual(req_login.status_code, 404)
         self.assertEqual(respuesta_login, "El usuario no existe")
-    
-
-    def test_login_usuario_inexsistente(self):
-        req_login = self.client.post(self.endpoint_login, 
-                                data=json.dumps({"username":"username-doesnt-exit", "password":self.new_user["password"]}),
-                                headers={'Content-Type': 'application/json'})
-        resp_login = json.loads(req_login.get_data())
-        self.assertEqual(req_login.status_code, 404)
-        self.assertEqual(resp_login, "El usuario no existe")
 '''
