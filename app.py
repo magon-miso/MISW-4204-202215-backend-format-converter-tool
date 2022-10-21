@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_restful import Api
+from os.path import abspath, dirname, join
 
 from modelos import db
 from vistas import  VistaSignup, VistaLogin, VistaTasks, VistaTask
@@ -11,6 +12,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'S3CR3T-K3Y-4204'
 app.config['PROPAGATE_EXCEPTIONS'] = True
+app.config['BASE_DIR'] = dirname(dirname(abspath(__file__)))
+app.config['AUDIO_DIR'] = join(app.config['BASE_DIR'], 'audio')
 
 app_context = app.app_context()
 app_context.push()
