@@ -1,13 +1,14 @@
 import os
+import json
+import redis
 from flask import request, current_app
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
-from flask_restful import Resource
+from flask_restful import Resource, Api
+from flask_jwt_extended import jwt_required, create_access_token, decode_token, get_jwt_identity
 from werkzeug.utils import secure_filename
 #from sqlalchemy.exc import IntegrityError
 #from sqlalchemy import or_, desc
 from datetime import datetime
 from pydub import AudioSegment
-
 from modelos import db, Task, TaskSchema, User, UserSchema
 
 task_schema = TaskSchema()
@@ -55,6 +56,13 @@ class VistaLogin(Resource):
 
 
 class VistaTasks(Resource):
+
+    def __init__(self) -> None:
+        # self.admin_email = 'ag.castiblanco1207@uniandes.edu.co'
+        # self.redis_cli = redis.Redis(host="localhost", password="redispw", port=6379, decode_responses=True, encoding="utf-8", )
+        self.admin_email = 'c.solanor@uniandes.edu.co'
+        self.redis_cli = redis.Redis(host="localhost", port=6379, decode_responses=True, encoding="utf-8", )
+        super().__init__()
 
     # listar todas las tareas de conversion de un usuario 
     # usuario debe proveer el token
@@ -106,29 +114,31 @@ class VistaTasks(Resource):
 
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
-                new_task = Task(filename=filename, 
-                                #newformat=request.form["newFormat"],
-                                newformat=newformat,
-                                user=user_id,
-                                status="uploaded", 
-                                upload_date=datetime.now())
-
+                new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now())
                 db.session.add(new_task)
                 db.session.commit()
 
-                song = None
-                print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] init")
+                user = db.session.query(User).filter(User.id.like(user_id)).first()
+                task_created = db.session.query(Task).filter(Task.user.like(user_id), Task.filename.like(filename), Task.newformat.like(newformat)).first()
+                message = {"id": task_created.id, 
+                            "filename": task_created.filename, 
+                            "newformat": task_created.newformat, 
+                            "username": user.username, 
+                            "email": user.email}
+                self.redis_cli.publish("audio", json.dumps(message))
+                
+                # song = None
+                # print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] init")
 
-                if(format=="mp3"):
-                    song = AudioSegment.from_mp3(file_path)
-                elif(format=="wav"):
-                    song = AudioSegment.from_wav(file_path)
-                elif(format=="ogg"):
-                    song = AudioSegment.from_ogg(file_path)
+                # if(format=="mp3"):
+                #     song = AudioSegment.from_mp3(file_path)
+                # elif(format=="wav"):
+                #     song = AudioSegment.from_wav(file_path)
+                # elif(format=="ogg"):
+                #     song = AudioSegment.from_ogg(file_path)
 
-                #print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] ....")
-                song.export(file_path.replace("."+format, "."+newformat), format=newformat)
-                print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] done")
+                # song.export(file_path.replace("."+format, "."+newformat), format=newformat)
+                # print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] done")
 
                 return task_schema.dump(new_task)
             return "Task was not created - empty file", 400
