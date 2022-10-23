@@ -25,7 +25,7 @@ class VistaSignup(Resource):
         
         resultado, mensaje = self.validatePassword(request)
         if not (resultado):
-            return mensaje, 400
+            return mensaje, 401
         
         new_user = User(username=request.json["username"], 
                                 password=request.json["password"], 
@@ -79,7 +79,7 @@ class VistaSignup(Resource):
                 if caracter == 1 and blanco == 0 and digito == 1 and minuscula == 1 and mayuscula == 1:
                     resultado = True
                 else:
-                    mensaje = "Contraseña no cumple condiciones de seguridad"
+                    mensaje = "password no cumple condiciones de seguridad"
         else:
             mensaje = "password no coincide"
         return resultado, mensaje
@@ -94,7 +94,7 @@ class VistaLogin(Resource):
             return "El usuario no existe", 404
         else:
             token = create_access_token(identity=user.id, additional_claims={"role": user.role, "user": user.username})
-            return {"mensaje": "Inicio de sesión exitoso", "token": token}
+            return {"mensaje": "Inicio de sesion exitoso", "token": token}
 
 
 class VistaTasks(Resource):
@@ -206,4 +206,17 @@ class VistaFile(Resource):
         try:
             return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
         except:
+            if self.isFilePendingProcess(filename):
+                return "File is not processed yet, please retry in a couple minutes"
             return "File is not available"
+    
+    def isFilePendingProcess(self,filename):
+        required_file_ext = filename[-3:]
+
+        # Valido si existe una tarea pendiente de procesar que devuelva el archivo requerido
+        for file_ext in current_app.config['UPLOAD_EXTENSIONS']:
+            filename_option = os.path.splitext(filename)[0] + file_ext
+            file_pending_process = db.session.query(Task).filter(Task.filename.like(filename_option), Task.newformat.like(required_file_ext), Task.status.like("uploaded")).first()
+            if file_pending_process is not None:
+                return True
+        return False
