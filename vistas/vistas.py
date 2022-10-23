@@ -24,7 +24,7 @@ class VistaSignup(Resource):
         
         resultado, mensaje = self.validatePassword(request)
         if not (resultado):
-            return mensaje, 400
+            return mensaje, 401
         
         new_user = User(username=request.json["username"], 
                                 password=request.json["password"], 
@@ -78,7 +78,7 @@ class VistaSignup(Resource):
                 if caracter == 1 and blanco == 0 and digito == 1 and minuscula == 1 and mayuscula == 1:
                     resultado = True
                 else:
-                    mensaje = "Contraseña no cumple condiciones de seguridad"
+                    mensaje = "password no cumple condiciones de seguridad"
         else:
             mensaje = "password no coincide"
         return resultado, mensaje
@@ -93,7 +93,7 @@ class VistaLogin(Resource):
             return "El usuario no existe", 404
         else:
             token = create_access_token(identity=user.id, additional_claims={"role": user.role, "user": user.username})
-            return {"mensaje": "Inicio de sesión exitoso", "token": token}
+            return {"mensaje": "Inicio de sesion exitoso", "token": token}
 
 
 class VistaTasks(Resource):
