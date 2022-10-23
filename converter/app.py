@@ -13,11 +13,7 @@ mail_notificador = MailNotificator()
 while True:
     message = consumer.get_message(ignore_subscribe_messages=True)
     time.sleep(3)
-    # print(" ...")
-    # with open('converter.log','a+') as file:
-    #     file.write('{} - converter microservice running...\n'.format(datetime.now()))
-    
-    logging.basicConfig(filename='converter-micro.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
+    logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
     logging.info('{} converter microservice running...'.format(datetime.now()))
 
     if message is None:
