@@ -16,6 +16,7 @@ app.config['JWT_SECRET_KEY'] = 'S3CR3T-K3Y-4204'
 app.config['PROPAGATE_EXCEPTIONS'] = True
 app.config['BASE_DIR'] = dirname(dirname(abspath(__file__)))
 app.config['AUDIO_DIR'] = join(app.config['BASE_DIR'], 'audio')
+app.config['UPLOAD_EXTENSIONS'] = ['.mp3', '.wav', '.ogg']
 
 app_context = app.app_context()
 app_context.push()

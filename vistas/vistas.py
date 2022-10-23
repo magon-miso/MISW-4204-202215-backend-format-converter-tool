@@ -217,4 +217,17 @@ class VistaFile(Resource):
         try:
             return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
         except:
+            if self.isFilePendingProcess(filename):
+                return "File is not processed yet, please retry in a couple minutes"
             return "File is not available"
+    
+    def isFilePendingProcess(self,filename):
+        required_file_ext = filename[-3:]
+
+        # Valido si existe una tarea pendiente de procesar que devuelva el archivo requerido
+        for file_ext in current_app.config['UPLOAD_EXTENSIONS']:
+            filename_option = os.path.splitext(filename)[0] + file_ext
+            file_pending_process = db.session.query(Task).filter(Task.filename.like(filename_option), Task.newformat.like(required_file_ext), Task.status.like("uploaded")).first()
+            if file_pending_process is not None:
+                return True
+        return False
