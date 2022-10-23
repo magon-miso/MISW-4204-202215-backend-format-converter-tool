@@ -177,6 +177,11 @@ class VistaTasks(Resource):
 
 class VistaTask(Resource):
 
+    def __init__(self) -> None:
+        self.admin_email = 'c.solanor@uniandes.edu.co'
+        self.redis_cli = redis.Redis(host="redis-converter", port=6379, decode_responses=True, encoding="utf-8", )
+        super().__init__()
+
     @jwt_required()
     def get(self, id_task):
         return task_schema.dump(Task.query.get_or_404(id_task))        
@@ -198,6 +203,53 @@ class VistaTask(Resource):
             return 'Task deleted successfully', 204
         else:
             return "The task could not be deleted", 400 
+
+    @jwt_required()
+    def put(self, id_task):
+        user_id = get_jwt_identity()
+        user = db.session.query(User).filter(User.id==user_id).first()
+        task = db.session.query(Task).filter(Task.id==id_task).first()
+
+        format = task.filename[len(task.filename)-3:]
+        newformat = request.form["newFormat"]
+        supported = False
+
+        if format=="mp3" and (newformat=="ogg" or newformat=="wav"):
+            supported = True
+        elif format=="wav" and (newformat=="ogg" or newformat=="mp3"):
+            supported = True
+        elif format=="ogg" and (newformat=="wav" or newformat=="mp3"):
+            supported = True
+
+        if(not supported):
+            return "Task was not created - formats not supported", 400
+
+        audio_dir = current_app.config['AUDIO_DIR']
+        os.makedirs(audio_dir, exist_ok=True)
+        file_path = os.path.join(audio_dir, task.filename)
+
+        print("")
+        print("put: ", id_task, file_path, task.newformat, newformat, task.status)
+
+        if(task.status=="processed"):
+            if os.path.isfile(file_path):
+                remove(file_path.replace(format, task.newformat))
+            task.status = "uploaded"
+
+        task.newformat = newformat
+        db.session.add(task)
+        db.session.commit()
+
+        message = {"id": task.id, 
+                    "filepath": file_path, 
+                    "filename": task.filename, 
+                    "newformat": task.newformat, 
+                    "username": user.username, 
+                    "email": user.email}
+
+        self.redis_cli.publish("audio", json.dumps(message))
+        return task_schema.dump(task)
+
 
 class VistaFile(Resource):
 
