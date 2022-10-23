@@ -19,7 +19,7 @@ RUN pip install -r requirements.txt
 COPY . /usr/src/app/
 # ADD ./ /usr/src/app/
 
-# run entrypoint.sh
+# two entrypoints: guicorn + converter async 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 
 # ENTRYPOINT [ "gunicorn", "--bind" , "0.0.0.0:5000", "manage:app"]
