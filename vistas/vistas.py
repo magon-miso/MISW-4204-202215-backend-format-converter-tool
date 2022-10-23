@@ -203,12 +203,31 @@ class VistaFile(Resource):
 
     @jwt_required()
     def get(self, filename):
-        try:
-            return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
-        except:
-            if self.isFilePendingProcess(filename):
-                return "File is not processed yet, please retry in a couple minutes"
-            return "File is not available"
+        user_id = get_jwt_identity()
+        user_allowed = False
+        # Verifica si es algún archivo original del usuario
+        user_original_file_task = db.session.query(Task).filter(Task.filename==filename, Task.user==user_id).first()
+        if user_original_file_task is not None:
+            user_allowed = True
+        # Verifica si es alguno de los archivos que serán o fueron procesados
+        else:
+            required_file_ext = filename[-3:]
+            for file_ext in current_app.config['UPLOAD_EXTENSIONS']:
+                filename_option = os.path.splitext(filename)[0] + file_ext
+                user_original_file_task_other_ext = db.session.query(Task).filter(Task.filename==filename_option, Task.user==user_id).first()
+                if user_original_file_task_other_ext is not None and required_file_ext == user_original_file_task_other_ext.newformat:
+                    user_allowed = True
+                    break
+        
+        if user_allowed:
+            try:
+                return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
+            except:
+                if self.isFilePendingProcess(filename):
+                    return "File is not processed yet, please retry in a couple minutes"
+                return "File is not available"
+
+        return "File is not available"
     
     def isFilePendingProcess(self,filename):
         required_file_ext = filename[-3:]
@@ -216,7 +235,7 @@ class VistaFile(Resource):
         # Valido si existe una tarea pendiente de procesar que devuelva el archivo requerido
         for file_ext in current_app.config['UPLOAD_EXTENSIONS']:
             filename_option = os.path.splitext(filename)[0] + file_ext
-            file_pending_process = db.session.query(Task).filter(Task.filename.like(filename_option), Task.newformat.like(required_file_ext), Task.status.like("uploaded")).first()
+            file_pending_process = db.session.query(Task).filter(Task.filename==filename_option, Task.newformat==required_file_ext, Task.status=="uploaded").first()
             if file_pending_process is not None:
                 return True
         return False
