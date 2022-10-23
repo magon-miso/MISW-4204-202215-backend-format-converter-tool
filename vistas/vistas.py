@@ -1,5 +1,7 @@
+from hashlib import algorithms_available
 import os
-from flask import request, current_app
+from os import remove
+from flask import request, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from flask_restful import Resource
 from werkzeug.utils import secure_filename
@@ -7,7 +9,6 @@ from werkzeug.utils import secure_filename
 #from sqlalchemy import or_, desc
 from datetime import datetime
 from pydub import AudioSegment
-
 from modelos import db, Task, TaskSchema, User, UserSchema
 
 task_schema = TaskSchema()
@@ -20,6 +21,10 @@ class VistaSignup(Resource):
         validacion = self.validateUser(request)
         if validacion is not None:
             return "Ya existe un usuario registrado con ese " + validacion, 400
+        
+        resultado, mensaje = self.validatePassword(request)
+        if not (resultado):
+            return mensaje, 400
         
         new_user = User(username=request.json["username"], 
                                 password=request.json["password"], 
@@ -41,6 +46,43 @@ class VistaSignup(Resource):
         if user_email is not None:
             return "correo"
 
+    def validatePassword(self, request):
+        resultado = False
+        mensaje = ""
+        if request.json["password"] == request.json["password2"]:
+            password = request.json["password"]
+            if len(request.json["password"])<8:
+                mensaje = "password no cumple longitud"
+            else:
+                minuscula = 0
+                for minus in password:
+                    if minus.islower()==True:
+                        minuscula = 1
+                        break
+                mayuscula = 0
+                for mayus in password:
+                    if mayus.isupper()==True:
+                        mayuscula = 1
+                        break
+                digito = 0
+                for dig in password:
+                    if dig.isdigit()==True:
+                        digito = 1
+                        break
+                blanco = 0
+                if password.count(" ")>0:
+                    blanco = 1
+                caracter = 0
+                if password.count(".")>0 or password.count("$")>0 or password.count("&")>0:
+                    caracter = 1
+                if caracter == 1 and blanco == 0 and digito == 1 and minuscula == 1 and mayuscula == 1:
+                    resultado = True
+                else:
+                    mensaje = "Contraseña no cumple condiciones de seguridad"
+        else:
+            mensaje = "password no coincide"
+        return resultado, mensaje
+
 
 class VistaLogin(Resource):
 
@@ -55,6 +97,13 @@ class VistaLogin(Resource):
 
 
 class VistaTasks(Resource):
+
+    def __init__(self) -> None:
+        # self.admin_email = 'ag.castiblanco1207@uniandes.edu.co'
+        # self.redis_cli = redis.Redis(host="localhost", password="redispw", port=6379, decode_responses=True, encoding="utf-8", )
+        self.admin_email = 'c.solanor@uniandes.edu.co'
+        self.redis_cli = redis.Redis(host="localhost", port=6379, decode_responses=True, encoding="utf-8", )
+        super().__init__()
 
     # listar todas las tareas de conversion de un usuario 
     # usuario debe proveer el token
@@ -106,29 +155,31 @@ class VistaTasks(Resource):
 
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
-                new_task = Task(filename=filename, 
-                                #newformat=request.form["newFormat"],
-                                newformat=newformat,
-                                user=user_id,
-                                status="uploaded", 
-                                upload_date=datetime.now())
-
+                new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now())
                 db.session.add(new_task)
                 db.session.commit()
 
-                song = None
-                print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] init")
+                user = db.session.query(User).filter(User.id.like(user_id)).first()
+                task_created = db.session.query(Task).filter(Task.user.like(user_id), Task.filename.like(filename), Task.newformat.like(newformat)).first()
+                message = {"id": task_created.id, 
+                            "filename": task_created.filename, 
+                            "newformat": task_created.newformat, 
+                            "username": user.username, 
+                            "email": user.email}
+                self.redis_cli.publish("audio", json.dumps(message))
+                
+                # song = None
+                # print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] init")
 
-                if(format=="mp3"):
-                    song = AudioSegment.from_mp3(file_path)
-                elif(format=="wav"):
-                    song = AudioSegment.from_wav(file_path)
-                elif(format=="ogg"):
-                    song = AudioSegment.from_ogg(file_path)
+                # if(format=="mp3"):
+                #     song = AudioSegment.from_mp3(file_path)
+                # elif(format=="wav"):
+                #     song = AudioSegment.from_wav(file_path)
+                # elif(format=="ogg"):
+                #     song = AudioSegment.from_ogg(file_path)
 
-                #print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] ....")
-                song.export(file_path.replace("."+format, "."+newformat), format=newformat)
-                print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] done")
+                # song.export(file_path.replace("."+format, "."+newformat), format=newformat)
+                # print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] done")
 
                 return task_schema.dump(new_task)
             return "Task was not created - empty file", 400
@@ -144,6 +195,26 @@ class VistaTask(Resource):
     @jwt_required()
     def delete(self, id_task):
         task = Task.query.get_or_404(id_task)
-        db.session.delete(task)
-        db.session.commit()
-        return '', 204
+        if task.status == 'processed':
+            filename = task.filename
+            format = filename[len(filename)-3:]
+            newFormat = task.newformat
+            archivo = filename.replace(format, newFormat)
+            audio_dir = current_app.config['AUDIO_DIR']
+            file_path = os.path.join(audio_dir, archivo)
+            if os.path.isfile(file_path):
+                remove(file_path)
+            db.session.delete(task)
+            db.session.commit()
+            return 'Task deleted successfully', 204
+        else:
+            return "The task could not be deleted", 400 
+
+class VistaFile(Resource):
+
+    @jwt_required()
+    def get(self, filename):
+        try:
+            return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
+        except:
+            return "File is not available"
