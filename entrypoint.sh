@@ -7,7 +7,7 @@ exec gunicorn --bind 0.0.0.0:5000 manage:app &
 
 # Start the second process
 # ./my_second_process &
-exec python converter/app.py &
+exec python converter-async/app.py &
 
 # Wait for any process to exit
 wait -n

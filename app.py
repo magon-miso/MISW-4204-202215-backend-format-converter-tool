@@ -1,4 +1,3 @@
-import logging
 import os
 from flask import Flask
 from flask_cors import CORS
@@ -35,8 +34,3 @@ api.add_resource(VistaFile, '/api/files/<path:filename>')
 
 jwt = JWTManager(app)
 
-# if __name__ != '__main__':
-#     # if we are not running directly, we set the loggers
-#     gunicorn_logger = logging.getLogger('gunicorn.error')
-#     app.logger.handlers = gunicorn_logger.handlers
-#     app.logger.setLevel(gunicorn_logger.level)
