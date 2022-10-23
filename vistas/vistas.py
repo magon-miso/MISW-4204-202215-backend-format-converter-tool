@@ -1,9 +1,9 @@
+from hashlib import algorithms_available
 import os
-import json
-import redis
-from flask import request, current_app
-from flask_restful import Resource, Api
-from flask_jwt_extended import jwt_required, create_access_token, decode_token, get_jwt_identity
+from os import remove
+from flask import request, current_app, send_from_directory
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from flask_restful import Resource
 from werkzeug.utils import secure_filename
 #from sqlalchemy.exc import IntegrityError
 #from sqlalchemy import or_, desc
@@ -21,6 +21,10 @@ class VistaSignup(Resource):
         validacion = self.validateUser(request)
         if validacion is not None:
             return "Ya existe un usuario registrado con ese " + validacion, 400
+        
+        resultado, mensaje = self.validatePassword(request)
+        if not (resultado):
+            return mensaje, 400
         
         new_user = User(username=request.json["username"], 
                                 password=request.json["password"], 
@@ -41,6 +45,43 @@ class VistaSignup(Resource):
         user_email = db.session.query(User).filter(User.email.like(request.json["email"])).first()
         if user_email is not None:
             return "correo"
+
+    def validatePassword(self, request):
+        resultado = False
+        mensaje = ""
+        if request.json["password"] == request.json["password2"]:
+            password = request.json["password"]
+            if len(request.json["password"])<8:
+                mensaje = "password no cumple longitud"
+            else:
+                minuscula = 0
+                for minus in password:
+                    if minus.islower()==True:
+                        minuscula = 1
+                        break
+                mayuscula = 0
+                for mayus in password:
+                    if mayus.isupper()==True:
+                        mayuscula = 1
+                        break
+                digito = 0
+                for dig in password:
+                    if dig.isdigit()==True:
+                        digito = 1
+                        break
+                blanco = 0
+                if password.count(" ")>0:
+                    blanco = 1
+                caracter = 0
+                if password.count(".")>0 or password.count("$")>0 or password.count("&")>0:
+                    caracter = 1
+                if caracter == 1 and blanco == 0 and digito == 1 and minuscula == 1 and mayuscula == 1:
+                    resultado = True
+                else:
+                    mensaje = "Contraseña no cumple condiciones de seguridad"
+        else:
+            mensaje = "password no coincide"
+        return resultado, mensaje
 
 
 class VistaLogin(Resource):
@@ -154,6 +195,26 @@ class VistaTask(Resource):
     @jwt_required()
     def delete(self, id_task):
         task = Task.query.get_or_404(id_task)
-        db.session.delete(task)
-        db.session.commit()
-        return '', 204
+        if task.status == 'processed':
+            filename = task.filename
+            format = filename[len(filename)-3:]
+            newFormat = task.newformat
+            archivo = filename.replace(format, newFormat)
+            audio_dir = current_app.config['AUDIO_DIR']
+            file_path = os.path.join(audio_dir, archivo)
+            if os.path.isfile(file_path):
+                remove(file_path)
+            db.session.delete(task)
+            db.session.commit()
+            return 'Task deleted successfully', 204
+        else:
+            return "The task could not be deleted", 400 
+
+class VistaFile(Resource):
+
+    @jwt_required()
+    def get(self, filename):
+        try:
+            return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
+        except:
+            return "File is not available"
