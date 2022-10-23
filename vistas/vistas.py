@@ -1,4 +1,5 @@
 import os
+from os import remove
 from flask import request, current_app
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from flask_restful import Resource
@@ -118,7 +119,7 @@ class VistaTasks(Resource):
 
                 song = None
                 print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] init")
-
+                """
                 if(format=="mp3"):
                     song = AudioSegment.from_mp3(file_path)
                 elif(format=="wav"):
@@ -127,7 +128,7 @@ class VistaTasks(Resource):
                     song = AudioSegment.from_ogg(file_path)
 
                 #print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] ....")
-                song.export(file_path.replace("."+format, "."+newformat), format=newformat)
+                song.export(file_path.replace("."+format, "."+newformat), format=newformat)"""
                 print(str(datetime.now()) +" ["+  format +"] -> ["+  newformat +"] done")
 
                 return task_schema.dump(new_task)
@@ -144,6 +145,17 @@ class VistaTask(Resource):
     @jwt_required()
     def delete(self, id_task):
         task = Task.query.get_or_404(id_task)
-        db.session.delete(task)
-        db.session.commit()
-        return '', 204
+        if task.status == 'processed':
+            filename = task.filename
+            format = filename[len(filename)-3:]
+            newFormat = task.newformat
+            archivo = filename.replace(format, newFormat)
+            audio_dir = current_app.config['AUDIO_DIR']
+            file_path = os.path.join(audio_dir, archivo)
+            if os.path.isfile(file_path):
+                remove(file_path)
+            db.session.delete(task)
+            db.session.commit()
+            return '', 204
+        else:
+            return "The task could not be deleted", 400 
