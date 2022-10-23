@@ -3,6 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
+    container_name: "web-converter"
     # command: python manage.py run -h 0.0.0.0
     command: gunicorn --bind 0.0.0.0:5000 manage:app
     volumes:
@@ -19,6 +20,7 @@ services:
     cpus: 1.0
   db:
     image: postgres:13-alpine
+    container_name: "db-converter"
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     ports:
