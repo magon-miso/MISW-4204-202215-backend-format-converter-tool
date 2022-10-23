@@ -5,7 +5,7 @@ from flask_restful import Api
 from os.path import abspath, dirname, join
 
 from modelos import db
-from vistas import  VistaSignup, VistaLogin, VistaTasks, VistaTask
+from vistas import  VistaSignup, VistaLogin, VistaTasks, VistaTask, VistaFile
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///converter.db'
@@ -28,6 +28,7 @@ api.add_resource(VistaSignup, '/api/auth/signup')
 api.add_resource(VistaLogin, '/api/auth/login')
 api.add_resource(VistaTasks, '/api/tasks')
 api.add_resource(VistaTask, '/api/tasks/<int:id_task>')
+api.add_resource(VistaFile, '/api/files/<path:filename>')
 #api.add_resource(VistaFiles, '/api/files/<string:filename>')
 
 jwt = JWTManager(app)

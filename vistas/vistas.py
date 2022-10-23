@@ -1,5 +1,5 @@
 import os
-from flask import request, current_app
+from flask import request, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from flask_restful import Resource
 from werkzeug.utils import secure_filename
@@ -147,3 +147,12 @@ class VistaTask(Resource):
         db.session.delete(task)
         db.session.commit()
         return '', 204
+
+class VistaFile(Resource):
+
+    @jwt_required()
+    def get(self, filename):
+        try:
+            return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
+        except:
+            return "Archivo no disponible"
