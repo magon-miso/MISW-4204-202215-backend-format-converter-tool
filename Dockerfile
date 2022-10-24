@@ -5,6 +5,8 @@ FROM python:3.7-alpine
 WORKDIR /usr/src/app
 
 RUN apk add ffmpeg
+RUN apk add build-base linux-headers
+ 
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
