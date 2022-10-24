@@ -23,10 +23,15 @@ Para la ejecución del proyecto escribir la siguiente linea en la consola de com
 ```
 docker-compose up -d --build
 ```
-### Ejecutando el programa
+### Instalación y ejecución
+Se debe descargar el código fuente con el siguiente comando
+```
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+```
 
-* How to run the program
-* Step-by-step bullets
+Se debe corroborar que docker se este ejecutando en el sistema operativo para lanzar la siguiente línea desda la consola de comandos
 ```
-code blocks for commands
+docker-compose up -d --build
 ```
+
+La información sobre el consumo de los servicios expuestos se puede consultar en [Documentación API - Postman](https://documenter.getpostman.com/view/24011777/2s84DoT41R)
