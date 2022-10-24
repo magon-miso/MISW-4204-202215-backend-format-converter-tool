@@ -2,12 +2,14 @@
 
 # Start the first process
 # ./my_first_process &
-exec gunicorn --bind 0.0.0.0:5000 manage:app &
+exec gunicorn --workers=5 --threads=2 --bind 0.0.0.0:5000 manage:app &
 #
 
 # Start the second process
 # ./my_second_process &
 exec python converter-async/app.py &
+
+exec python docker-monitor/monitor.py &
 
 # Wait for any process to exit
 wait -n
