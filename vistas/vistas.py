@@ -161,21 +161,28 @@ class VistaTasks(Resource):
                 db.session.commit()
 
                 user = db.session.query(User).filter(User.id==user_id).first()
-                task_created = db.session.query(Task).filter(Task.user==user_id, Task.filename==filename, Task.newformat==newformat).first()
+                task_created = db.session.query(Task).filter(Task.user==user_id, Task.filename==filename, Task.newformat==newformat).order_by(Task.id.desc()).first()
                 message = {"id": task_created.id, 
                             "filepath": file_path, 
                             "filename": task_created.filename, 
                             "newformat": task_created.newformat, 
+                            "upload_date": task_created.upload_date.strftime("%Y-%m-%d %H:%M:%S"), 
                             "username": user.username, 
                             "email": user.email}
                 self.redis_cli.publish("audio", json.dumps(message))
-                
+                # sort_keys=True, default=str
+
                 return task_schema.dump(new_task)
             return "Task was not created - empty file", 400
         return "Task was not created - file missing", 400
 
 
 class VistaTask(Resource):
+
+    def __init__(self) -> None:
+        self.admin_email = 'c.solanor@uniandes.edu.co'
+        self.redis_cli = redis.Redis(host="redis-converter", port=6379, decode_responses=True, encoding="utf-8", )
+        super().__init__()
 
     @jwt_required()
     def get(self, id_task):
@@ -199,16 +206,83 @@ class VistaTask(Resource):
         else:
             return "The task could not be deleted", 400 
 
+    @jwt_required()
+    def put(self, id_task):
+        user_id = get_jwt_identity()
+        user = db.session.query(User).filter(User.id==user_id).first()
+        task = db.session.query(Task).filter(Task.id==id_task).first()
+
+        format = task.filename[len(task.filename)-3:]
+        newformat = request.form["newFormat"]
+        supported = False
+
+        if format=="mp3" and (newformat=="ogg" or newformat=="wav"):
+            supported = True
+        elif format=="wav" and (newformat=="ogg" or newformat=="mp3"):
+            supported = True
+        elif format=="ogg" and (newformat=="wav" or newformat=="mp3"):
+            supported = True
+
+        if(not supported):
+            return "Task was not created - formats not supported", 400
+
+        audio_dir = current_app.config['AUDIO_DIR']
+        os.makedirs(audio_dir, exist_ok=True)
+        file_path = os.path.join(audio_dir, task.filename)
+
+        print("")
+        print("put: ", id_task, file_path, task.newformat, newformat, task.status)
+
+        if(task.status=="processed"):
+            if os.path.isfile(file_path):
+                remove(file_path.replace(format, task.newformat))
+            task.status = "uploaded"
+
+        task.newformat = newformat
+        db.session.add(task)
+        db.session.commit()
+
+        message = {"id": task.id, 
+                    "filepath": file_path, 
+                    "filename": task.filename, 
+                    "newformat": task.newformat, 
+                    "upload_date": task.upload_date.strftime("%Y-%m-%d %H:%M:%S"),
+                    "username": user.username, 
+                    "email": user.email}
+        #2022-10-23 23:19:23,17
+        self.redis_cli.publish("audio", json.dumps(message))
+        return task_schema.dump(task)
+
+
 class VistaFile(Resource):
 
     @jwt_required()
     def get(self, filename):
-        try:
-            return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
-        except:
-            if self.isFilePendingProcess(filename):
-                return "File is not processed yet, please retry in a couple minutes"
-            return "File is not available"
+        user_id = get_jwt_identity()
+        user_allowed = False
+        # Verifica si es algún archivo original del usuario
+        user_original_file_task = db.session.query(Task).filter(Task.filename==filename, Task.user==user_id).first()
+        if user_original_file_task is not None:
+            user_allowed = True
+        # Verifica si es alguno de los archivos que serán o fueron procesados
+        else:
+            required_file_ext = filename[-3:]
+            for file_ext in current_app.config['UPLOAD_EXTENSIONS']:
+                filename_option = os.path.splitext(filename)[0] + file_ext
+                user_original_file_task_other_ext = db.session.query(Task).filter(Task.filename==filename_option, Task.user==user_id).first()
+                if user_original_file_task_other_ext is not None and required_file_ext == user_original_file_task_other_ext.newformat:
+                    user_allowed = True
+                    break
+        
+        if user_allowed:
+            try:
+                return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
+            except:
+                if self.isFilePendingProcess(filename):
+                    return "File is not processed yet, please retry in a couple minutes"
+                return "File is not available"
+
+        return "File is not available"
     
     def isFilePendingProcess(self,filename):
         required_file_ext = filename[-3:]
@@ -216,7 +290,7 @@ class VistaFile(Resource):
         # Valido si existe una tarea pendiente de procesar que devuelva el archivo requerido
         for file_ext in current_app.config['UPLOAD_EXTENSIONS']:
             filename_option = os.path.splitext(filename)[0] + file_ext
-            file_pending_process = db.session.query(Task).filter(Task.filename.like(filename_option), Task.newformat.like(required_file_ext), Task.status.like("uploaded")).first()
+            file_pending_process = db.session.query(Task).filter(Task.filename==filename_option, Task.newformat==required_file_ext, Task.status=="uploaded").first()
             if file_pending_process is not None:
                 return True
         return False

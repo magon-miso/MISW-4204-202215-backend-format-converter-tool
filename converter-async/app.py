@@ -8,11 +8,8 @@ from datetime import datetime
 from pydub import AudioSegment
 from correo import EmailSender
 from flask import Flask
-# from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 # from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-# from sqlalchemy.orm import relationship
-# import database
 
 db = SQLAlchemy()
 
@@ -56,24 +53,26 @@ while True:
     time.sleep(1)
     logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
     if (counter%10==0):
-        logging.info('{} converter-async running ...'.format(datetime.now()))
+        logging.info('converter-async running ...')
 
     if message is None:
         continue
 
-    logging.info('{} converter-async audio-topic: {}'.format(datetime.now(), message))
+    logging.info('converter-async audio-topic: {}'.format(message))
     message_decoded = json.loads(message['data'])
-    #message_body = message_decoded['mensaje']
+
     task_id = message_decoded['id']
     filepath = message_decoded['filepath']
     filename = message_decoded['filename']
     newformat = message_decoded['newformat']
+    uploadtime = message_decoded['upload_date']
     username = message_decoded['username']
     email = message_decoded['email']
 
     song = None
     format = filename[len(filename)-3:]
-    logging.info('{} converter-async ["+  format +"] -> ["+  newformat +"] init'.format(datetime.now()))
+    upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
+    logging.info('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
     if(format=="mp3"):
         song = AudioSegment.from_mp3(filepath)
@@ -83,15 +82,17 @@ while True:
         song = AudioSegment.from_ogg(filepath)
 
     song.export(filepath.replace("."+format, "."+newformat), format=newformat)
-    logging.info('{} converter-async ["+  format +"] -> ["+  newformat +"] done'.format(datetime.now()))
+    diff_time = datetime.now() - upload
+    logging.info('{} converter-async {} {}->{} done {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     # processed task in postgress
     task = db.session.query(Task).filter(Task.id==task_id).first()
     task.status = "processed"
     db.session.add(task)
     db.session.commit()
+    logging.info('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     subject = filename +"  processed to "+ newformat
     message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
-    logging.info('{} converter-async ["+  format +"] -> ["+  newformat +"] sent'.format(datetime.now()))
     # mail.send_mail(email, subject, message)
+    # logging.info('{} converter-async {}->{} sent'.format(uploadtime, format, newformat))
