@@ -161,15 +161,17 @@ class VistaTasks(Resource):
                 db.session.commit()
 
                 user = db.session.query(User).filter(User.id==user_id).first()
-                task_created = db.session.query(Task).filter(Task.user==user_id, Task.filename==filename, Task.newformat==newformat).first()
+                task_created = db.session.query(Task).filter(Task.user==user_id, Task.filename==filename, Task.newformat==newformat).order_by(Task.id.desc()).first()
                 message = {"id": task_created.id, 
                             "filepath": file_path, 
                             "filename": task_created.filename, 
                             "newformat": task_created.newformat, 
+                            "upload_date": task_created.upload_date.strftime("%Y-%m-%d %H:%M:%S"), 
                             "username": user.username, 
                             "email": user.email}
                 self.redis_cli.publish("audio", json.dumps(message))
-                
+                # sort_keys=True, default=str
+
                 return task_schema.dump(new_task)
             return "Task was not created - empty file", 400
         return "Task was not created - file missing", 400
@@ -244,9 +246,10 @@ class VistaTask(Resource):
                     "filepath": file_path, 
                     "filename": task.filename, 
                     "newformat": task.newformat, 
+                    "upload_date": task.upload_date.strftime("%Y-%m-%d %H:%M:%S"),
                     "username": user.username, 
                     "email": user.email}
-
+        #2022-10-23 23:19:23,17
         self.redis_cli.publish("audio", json.dumps(message))
         return task_schema.dump(task)
 
