@@ -20,5 +20,5 @@ RUN pip install -r requirements.txt
 COPY . /usr/src/app/
 
 # two entrypoints: guicorn + monitor 
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
-
+# ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+CMD ["gunicorn", "--workers=5 --threads=2 --bind 0.0.0.0:5000 manage:app"]
