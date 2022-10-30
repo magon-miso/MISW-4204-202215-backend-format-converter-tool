@@ -1,4 +1,5 @@
 import os
+import google.cloud.logging
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -25,6 +26,9 @@ db.create_all()
 
 cors = CORS(app)
 
+client = google.cloud.loggin.Client()
+client.setup_logging()
+
 api = Api(app)
 api.add_resource(VistaSignup, '/api/auth/signup')
 api.add_resource(VistaLogin, '/api/auth/login')
@@ -34,4 +38,3 @@ api.add_resource(VistaFile, '/api/files/<path:filename>')
 #api.add_resource(VistaFiles, '/api/files/<string:filename>')
 
 jwt = JWTManager(app)
-
