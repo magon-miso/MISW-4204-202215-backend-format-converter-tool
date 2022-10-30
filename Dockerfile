@@ -6,6 +6,7 @@ WORKDIR /usr/src/app
 
 # RUN apk add ffmpeg
 RUN apk add build-base linux-headers
+RUN apk add libpq-dev
  
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -21,4 +22,4 @@ COPY . /usr/src/app/
 
 # two entrypoints: guicorn + monitor 
 # ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
-CMD ["gunicorn", "--workers=5 --threads=2 --bind 0.0.0.0:5000 manage:app"]
+CMD ["gunicorn", "--workers=1", "--threads=8", "--bind", "0.0.0.0:5000", "manage:app"]

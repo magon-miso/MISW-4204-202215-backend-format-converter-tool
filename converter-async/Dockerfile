@@ -6,6 +6,7 @@ WORKDIR /usr/src/app
 
 RUN apk add ffmpeg
 RUN apk add build-base linux-headers
+RUN apk add libpq-dev
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1

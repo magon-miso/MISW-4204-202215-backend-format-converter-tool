@@ -1,5 +1,5 @@
 import os
-import google.cloud.logging
+#import google.cloud.logging
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -26,8 +26,8 @@ db.create_all()
 
 cors = CORS(app)
 
-client = google.cloud.logging.Client()
-client.setup_logging()
+#client = google.cloud.logging.Client()
+#client.setup_logging()
 
 api = Api(app)
 api.add_resource(VistaSignup, '/api/auth/signup')
