@@ -20,4 +20,6 @@ RUN pip install -r requirements.txt
 COPY . /usr/src/app/
 
 # two entrypoints: converter async + monitor 
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+# ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+
+CMD ["python", "app.py"]
