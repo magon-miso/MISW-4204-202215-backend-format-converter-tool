@@ -4,10 +4,9 @@ FROM python:3.7-alpine
 # set work directory
 WORKDIR /usr/src/app
 
-RUN apk add ffmpeg
+# RUN apk add ffmpeg
 RUN apk add build-base linux-headers
  
-
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -19,10 +18,7 @@ RUN pip install -r requirements.txt
 
 # copy project
 COPY . /usr/src/app/
-# ADD ./ /usr/src/app/
 
-# two entrypoints: guicorn + converter async 
+# two entrypoints: guicorn + monitor 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 
-# ENTRYPOINT [ "gunicorn", "--bind" , "0.0.0.0:5000", "manage:app"]
-# CMD ["python", "converter/app.py"]

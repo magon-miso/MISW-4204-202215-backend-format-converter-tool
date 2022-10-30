@@ -26,7 +26,7 @@ db.create_all()
 
 cors = CORS(app)
 
-client = google.cloud.loggin.Client()
+client = google.cloud.logging.Client()
 client.setup_logging()
 
 api = Api(app)
