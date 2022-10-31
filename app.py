@@ -15,7 +15,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:converter@34.125.
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'S3CR3T-K3Y-4204'
 app.config['PROPAGATE_EXCEPTIONS'] = True
-app.config['BASE_DIR'] = dirname(dirname(abspath(__file__)))
+#app.config['BASE_DIR'] = dirname(dirname(abspath(__file__)))
+app.config['BASE_DIR'] = "/nfs/general/" 
 app.config['AUDIO_DIR'] = join(app.config['BASE_DIR'], 'audio')
 app.config['UPLOAD_EXTENSIONS'] = ['.mp3', '.wav', '.ogg']
 
