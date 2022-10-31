@@ -34,7 +34,8 @@ class User(db.Model):
     tasks = db.relationship('Task', cascade='all, delete, delete-orphan')
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL_ASYNC", "sqlite:///converter.db")
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL_ASYNC", "sqlite:///converter.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://postgres:converter@34.125.88.73:5432/converter-dev"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app_context = app.app_context()
