@@ -304,7 +304,8 @@ class VistaFile(Resource):
         
         if user_allowed:
             try:
-                return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
+                # return send_from_directory(current_app.config['AUDIO_DIR'], filename, as_attachment=True)
+                return self.get_file_url(filename)
             except:
                 if self.isFilePendingProcess(filename):
                     return "File is not processed yet, please retry in a couple minutes"
@@ -322,3 +323,17 @@ class VistaFile(Resource):
             if file_pending_process is not None:
                 return True
         return False
+
+    def get_file_url(self, filename):
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(current_app.config['BUCKET'])
+        blob = bucket.blob(filename)
+
+        url = blob.generate_signed_url(
+        # This URL is valid for 1 hour
+        expiration=datetime.timedelta(hours=1),
+        # Allow GET requests using this URL.
+        method="GET",)
+        print(f"The signed url for {blob.name} is {url}")
+        
+        return url
