@@ -40,6 +40,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL_ASYNC")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['BUCKET'] = os.getenv("AUDIO_BUCKET")
+app.config['PROJECT_ID'] = os.getenv("PROJECT_ID")
 
 app_context = app.app_context()
 app_context.push()
@@ -80,7 +81,7 @@ while True:
     logging.info('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
     logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
-    storage_client = storage.Client()
+    storage_client = storage.Client(app.config['PROJECT_ID'])
     bucket = storage_client.bucket(app.config['BUCKET'])
     blob = bucket.blob(filename)
     logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filepath))
