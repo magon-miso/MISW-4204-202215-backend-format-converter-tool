@@ -262,8 +262,13 @@ class VistaTask(Resource):
         print("put: ", id_task, file_path, task.newformat, newformat, task.status)
 
         if(task.status=="processed"):
-            if os.path.isfile(file_path):
-                remove(file_path.replace(format, task.newformat))
+            filename = task.filename
+            storage_client = storage.Client()
+            bucket = storage_client.bucket(current_app.config['BUCKET'])
+            blob = bucket.blob(filename)
+            blob.upload_from_filename(file_path)
+            #if os.path.isfile(file_path):
+                #remove(file_path.replace(format, task.newformat))
             task.status = "uploaded"
 
         task.newformat = newformat
