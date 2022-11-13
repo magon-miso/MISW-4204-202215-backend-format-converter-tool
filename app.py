@@ -11,12 +11,15 @@ from vistas import  VistaSignup, VistaLogin, VistaTasks, VistaTask, VistaFile
 
 app = Flask(__name__)
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///converter.db")
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:converter@34.125.88.73:5432/converter-dev"
+# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:converter@34.125.88.73:5432/converter-dev"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'S3CR3T-K3Y-4204'
 app.config['PROPAGATE_EXCEPTIONS'] = True
 app.config['BASE_DIR'] = dirname(dirname(abspath(__file__)))
+#app.config['BASE_DIR'] = "/nfs/general/" 
 app.config['AUDIO_DIR'] = join(app.config['BASE_DIR'], 'audio')
+app.config['BUCKET'] = "format-converter-4204-bucket" 
 app.config['UPLOAD_EXTENSIONS'] = ['.mp3', '.wav', '.ogg']
 
 app_context = app.app_context()
