@@ -198,9 +198,17 @@ class VistaTask(Resource):
             newFormat = task.newformat
             archivo = filename.replace(format, newFormat)
             audio_dir = current_app.config['AUDIO_DIR']
-            file_path = os.path.join(audio_dir, archivo)
+
+            file_path = os.path.join(audio_dir, filename)
+            print("delete1 ", file_path)
             if os.path.isfile(file_path):
                 remove(file_path)
+
+            file_path = os.path.join(audio_dir, archivo)
+            print("delete2 ", file_path)
+            if os.path.isfile(file_path):
+                remove(file_path)
+
             db.session.delete(task)
             db.session.commit()
             return 'Task deleted successfully', 204
