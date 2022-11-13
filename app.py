@@ -19,7 +19,7 @@ app.config['PROPAGATE_EXCEPTIONS'] = True
 app.config['BASE_DIR'] = dirname(dirname(abspath(__file__)))
 #app.config['BASE_DIR'] = "/nfs/general/" 
 app.config['AUDIO_DIR'] = join(app.config['BASE_DIR'], 'audio')
-app.config['BUCKET'] = "format-converter-4204-bucket" 
+app.config['BUCKET'] = os.getenv("AUDIO_BUCKET") 
 app.config['UPLOAD_EXTENSIONS'] = ['.mp3', '.wav', '.ogg']
 
 app_context = app.app_context()

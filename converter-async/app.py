@@ -9,6 +9,7 @@ from pydub import AudioSegment
 from correo import EmailSender
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from google.cloud import storage
 # from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 
 db = SQLAlchemy()
@@ -38,6 +39,7 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://postgres:converter@34.125.88.73:5432/converter-dev"
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL_ASYNC")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['BUCKET'] = os.getenv("AUDIO_BUCKET")
 
 app_context = app.app_context()
 app_context.push()
@@ -77,6 +79,14 @@ while True:
     upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
     logging.info('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
+    logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(app.config['BUCKET'])
+    blob = bucket.blob(filename)
+    logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filepath))
+    blob.download_to_filename(filepath)
+    logging.info('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
+
     if(format=="mp3"):
         song = AudioSegment.from_mp3(filepath)
     elif(format=="wav"):
@@ -84,9 +94,15 @@ while True:
     elif(format=="ogg"):
         song = AudioSegment.from_ogg(filepath)
 
-    song.export(filepath.replace("."+format, "."+newformat), format=newformat)
+    filename2 = filepath.replace("."+format, "."+newformat)
+    logging.info('{} converter-async {} {}->{} export init {}'.format(uploadtime, task_id, format, newformat, filename2))    
+    song.export(filename2, format=newformat)
     diff_time = datetime.now() - upload
-    logging.info('{} converter-async {} {}->{} done {}'.format(uploadtime, task_id, format, newformat, diff_time))
+    logging.info('{} converter-async {} {}->{} export done {}'.format(uploadtime, task_id, format, newformat, diff_time))
+
+    blob_proc = bucket.blob(filename2)
+    blob.upload_from_filename(filename2)
+    logging.info('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
 
     # processed task in postgress
     task = db.session.query(Task).filter(Task.id==task_id).first()
