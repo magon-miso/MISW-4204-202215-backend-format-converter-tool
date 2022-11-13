@@ -157,6 +157,12 @@ class VistaTasks(Resource):
                 storage_client = storage.Client()
                 bucket = storage_client.bucket(current_app.config['BUCKET'])
                 blob = bucket.blob(filename)
+                blob.upload_from_filename(file_path)
+
+                # with file.open("rb") as audiofile:
+                #     bytes = audiofile.read()
+                # with blob.open("wb") as audiobucket:
+                #     audiobucket.write(bytes)
                 
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
