@@ -2,6 +2,7 @@ import os
 import json
 import redis
 from os import remove
+from google.cloud import storage
 from flask import request, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from flask_restful import Resource
@@ -149,12 +150,14 @@ class VistaTasks(Resource):
                 #print("vista-tasks-post secure_filename: ", filename)
                 audio_dir = current_app.config['AUDIO_DIR']
                 os.makedirs(audio_dir, exist_ok=True)
-                
-                #print("vista-tasks-post os.makedirs")
                 file_path = os.path.join(audio_dir, filename)
                 file.save(file_path)
-                #print("file_path:", file_path)
-
+                print("file_path:", file_path)
+                
+                storage_client = storage.Client()
+                bucket = storage_client.bucket(current_app.config['BUCKET'])
+                blob = bucket.blob(filename)
+                
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
                 new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now())
@@ -197,10 +200,28 @@ class VistaTask(Resource):
             format = filename[len(filename)-3:]
             newFormat = task.newformat
             archivo = filename.replace(format, newFormat)
-            audio_dir = current_app.config['AUDIO_DIR']
-            file_path = os.path.join(audio_dir, archivo)
-            if os.path.isfile(file_path):
-                remove(file_path)
+            #audio_dir = current_app.config['AUDIO_DIR']
+
+            storage_client = storage.Client()
+            bucket = storage_client.bucket(current_app.config['BUCKET'])
+
+            blob = bucket.blob(filename)
+            blob.delete()
+            print("deleted-1 ", filename)
+            blob = bucket.blob(archivo)
+            blob.delete()
+            print("deleted-2 ", archivo)
+
+            # file_path = os.path.join(audio_dir, filename)
+            # print("delete1 ", file_path)
+            # if os.path.isfile(file_path):
+            #     remove(file_path)
+
+            # file_path = os.path.join(audio_dir, archivo)
+            # print("delete2 ", file_path)
+            # if os.path.isfile(file_path):
+            #     remove(file_path)
+
             db.session.delete(task)
             db.session.commit()
             return 'Task deleted successfully', 204
