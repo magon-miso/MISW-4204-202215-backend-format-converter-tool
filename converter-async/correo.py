@@ -1,3 +1,4 @@
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -5,8 +6,8 @@ from email.mime.text import MIMEText
 class EmailSender():
 
     def send_mail(self, mail_to, subject, message):
-        ME = ""
-        my_password = r""
+        ME = os.getenv("EMAIL_FROM")
+        my_password = os.getenv("EMAIL_PWD")
 
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject

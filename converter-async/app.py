@@ -41,6 +41,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL_ASYNC")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['BUCKET'] = os.getenv("AUDIO_BUCKET")
 app.config['PROJECT_ID'] = os.getenv("PROJECT_ID")
+app.config['EMAIL_ENABLED'] = os.getenv("EMAIL_ENABLED")
+app.config['EMAIL_FROM'] = os.getenv("EMAIL_FROM")
+app.config['EMAIL_PWD'] = os.getenv("EMAIL_PWD")
 
 app_context = app.app_context()
 app_context.push()
@@ -81,7 +84,8 @@ while True:
     logging.info('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
     logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
-    storage_client = storage.Client(app.config['PROJECT_ID'])
+    #storage_client = storage.Client(app.config['PROJECT_ID'])
+    storage_client = storage.Client()
     bucket = storage_client.bucket(app.config['BUCKET'])
     blob = bucket.blob(filename)
     logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
@@ -102,7 +106,7 @@ while True:
     logging.info('{} converter-async {} {}->{} export done {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     blob_proc = bucket.blob(filename2)
-    blob.upload_from_filename(filename2)
+    blob_proc.upload_from_filename(filename2)
     logging.info('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
 
     # processed task in postgress
@@ -114,5 +118,7 @@ while True:
 
     subject = filename +"  processed to "+ newformat
     message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
-    # mail.send_mail(email, subject, message)
-    # logging.info('{} converter-async {}->{} sent'.format(uploadtime, format, newformat))
+    
+    if(app.config['EMAIL_ENABLED']=='true'):
+        mail.send_mail(email, subject, message)
+        logging.info('{} converter-async {}->{} sent'.format(uploadtime, format, newformat))
