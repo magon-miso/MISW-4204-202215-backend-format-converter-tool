@@ -68,7 +68,7 @@ while True:
     message_decoded = json.loads(message['data'])
 
     task_id = message_decoded['id']
-    filepath = message_decoded['filepath']
+    # filepath = message_decoded['filepath']
     filename = message_decoded['filename']
     newformat = message_decoded['newformat']
     uploadtime = message_decoded['upload_date']
@@ -84,18 +84,18 @@ while True:
     storage_client = storage.Client(app.config['PROJECT_ID'])
     bucket = storage_client.bucket(app.config['BUCKET'])
     blob = bucket.blob(filename)
-    logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filepath))
-    blob.download_to_filename(filepath)
+    logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
+    blob.download_to_filename(filename)
     logging.info('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
 
     if(format=="mp3"):
-        song = AudioSegment.from_mp3(filepath)
+        song = AudioSegment.from_mp3(filename)
     elif(format=="wav"):
-        song = AudioSegment.from_wav(filepath)
+        song = AudioSegment.from_wav(filename)
     elif(format=="ogg"):
-        song = AudioSegment.from_ogg(filepath)
+        song = AudioSegment.from_ogg(filename)
 
-    filename2 = filepath.replace("."+format, "."+newformat)
+    filename2 = filename.replace("."+format, "."+newformat)
     logging.info('{} converter-async {} {}->{} export init {}'.format(uploadtime, task_id, format, newformat, filename2))    
     song.export(filename2, format=newformat)
     diff_time = datetime.now() - upload
