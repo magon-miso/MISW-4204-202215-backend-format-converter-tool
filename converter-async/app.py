@@ -108,6 +108,8 @@ while True:
     blob_proc = bucket.blob(filename2)
     blob_proc.upload_from_filename(filename2)
     logging.info('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
+    url = blob_proc.generate_signed_url(expiration=datetime.timedelta(hours=1), method="GET",)
+    logging.info('{} converter-async {} {}->{} {}'.format(uploadtime, task_id, format, newformat, url))
 
     # processed task in postgress
     task = db.session.query(Task).filter(Task.id==task_id).first()
@@ -117,7 +119,7 @@ while True:
     logging.info('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     subject = filename +"  processed to "+ newformat
-    message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
+    message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully, please download here: "+ url
     
     if(app.config['EMAIL_ENABLED']=='true'):
         mail.send_mail(email, subject, message)
