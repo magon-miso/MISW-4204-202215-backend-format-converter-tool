@@ -191,7 +191,7 @@ class VistaTask(Resource):
 
     def __init__(self) -> None:
         self.admin_email = 'c.solanor@uniandes.edu.co'
-        self.redis_cli = redis.Redis(host="redis-converter", port=6379, decode_responses=True, encoding="utf-8", )
+        self.redis_cli = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
         super().__init__()
 
     @jwt_required()
