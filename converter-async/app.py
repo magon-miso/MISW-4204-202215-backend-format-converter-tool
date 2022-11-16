@@ -63,35 +63,6 @@ subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.conf
 def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     #print(f"Received {message.data}.")
     logging.info('converter-async audio-topic: {}'.format(message.data))
-    message.ack()
-
-timeout = 3.0
-logging.info('converter-async audio-topic: listening on '.format(subscription_path))
-streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
-
-counter = 0
-while True:
-    counter+=1
-    # message = consumer.get_message(ignore_subscribe_messages=True)
-    time.sleep(1)
-    logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
-
-    # if (counter%10==0):
-    #     logging.info('converter-async running ...')
-    # if message is None:
-    #     continue
-
-    # Wrap subscriber in a 'with' block to automatically call close() when done.
-    with subscriber:
-        try:
-            # When `timeout` is not set, result() will block indefinitely,
-            # unless an exception is encountered first.
-            streaming_pull_future.result(timeout=timeout)
-        except TimeoutError:
-            streaming_pull_future.cancel()  # Trigger the shutdown.
-            streaming_pull_future.result()  # Block until the shutdown is complete.
-
-    logging.info('converter-async audio-topic: {}'.format(message))
     message_decoded = json.loads(message['data'])
 
     task_id = message_decoded['id']
@@ -147,3 +118,32 @@ while True:
     if(app.config['EMAIL_ENABLED']=='true'):
         mail.send_mail(email, subject, message)
         logging.info('converter-async {}->{} sent'.format(format, newformat))
+
+    message.ack()
+
+timeout = 3.0
+logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+
+counter = 0
+while True:
+    counter+=1
+    # message = consumer.get_message(ignore_subscribe_messages=True)
+    time.sleep(1)
+    # logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
+
+    # if (counter%10==0):
+    #     logging.info('converter-async running ...')
+    # if message is None:
+    #     continue
+
+    # Wrap subscriber in a 'with' block to automatically call close() when done.
+    with subscriber:
+        try:
+            # When `timeout` is not set, result() will block indefinitely,
+            # unless an exception is encountered first.
+            streaming_pull_future.result(timeout=timeout)
+        except TimeoutError:
+            streaming_pull_future.cancel()  # Trigger the shutdown.
+            streaming_pull_future.result()  # Block until the shutdown is complete.
+
