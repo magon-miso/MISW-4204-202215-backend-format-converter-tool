@@ -55,9 +55,7 @@ db.init_app(app)
 # consumer = colaredis.pubsub()
 # consumer.subscribe('audio')
 mail = EmailSender()
-
-subscriber = pubsub_v1.SubscriberClient()
-subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+logging.info('converter-async started ...')
 
 #def process_payload(message):
 def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
@@ -122,28 +120,35 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     message.ack()
 
 timeout = 3.0
-logging.info('converter-async audio-topic: listening on '.format(subscription_path))
-streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+# subscriber = pubsub_v1.SubscriberClient()
+# subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+# logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+# streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
 counter = 0
 while True:
     counter+=1
-    # message = consumer.get_message(ignore_subscribe_messages=True)
     time.sleep(1)
+
+    # message = consumer.get_message(ignore_subscribe_messages=True)
     # logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
 
-    # if (counter%10==0):
+    # if (counter%15==0):
     #     logging.info('converter-async running ...')
     # if message is None:
     #     continue
 
-    # Wrap subscriber in a 'with' block to automatically call close() when done.
+    subscriber = pubsub_v1.SubscriberClient()
+    subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+    logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+
     with subscriber:
         try:
             # When `timeout` is not set, result() will block indefinitely,
-            # unless an exception is encountered first.
+            # unless an exception is encountered first.                
             streaming_pull_future.result(timeout=timeout)
+            # streaming_pull_future.result()
         except TimeoutError:
-            streaming_pull_future.cancel()  # Trigger the shutdown.
-            streaming_pull_future.result()  # Block until the shutdown is complete.
+            streaming_pull_future.cancel() # Trigger the shutdown.
 
