@@ -173,7 +173,8 @@ class VistaTasks(Resource):
 
                 print("post pubsub-init: ", self.topic_path)
                 print("post pubsub-init: ", json.dumps(message))
-                future = self.publisher.publish(self.topic_path, json.dumps(message).encode("utf-8"))
+                data = json.dumps(message).encode("utf-8")
+                future = self.publisher.publish(self.topic_path, data=data)
                 result = future.result()
                 print("post pubsub-done: ", result)
                 # self.redis_cli.publish("audio", json.dumps(message))
@@ -272,7 +273,8 @@ class VistaTask(Resource):
 
         print("post pubsub-init: ", self.topic_path)
         print("post pubsub-init: ", json.dumps(message))
-        future = self.publisher.publish(self.topic_path, json.dumps(message).encode("utf-8"))
+        data = json.dumps(message).encode("utf-8")
+        future = self.publisher.publish(self.topic_path, data=data)
         result = future.result()
         print("post pubsub-done: ", result)
         # self.redis_cli.publish("audio", json.dumps(message))
