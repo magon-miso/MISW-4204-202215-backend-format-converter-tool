@@ -1,7 +1,7 @@
 import os
 import json
 import time
-import redis
+#import redis
 import logging
 from enum import Enum
 from datetime import datetime
@@ -10,6 +10,8 @@ from correo import EmailSender
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from google.cloud import storage
+from google.cloud import pubsub_v1
+from concurrent.futures import TimeoutError
 # from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 
 db = SQLAlchemy()
@@ -35,37 +37,59 @@ class User(db.Model):
     tasks = db.relationship('Task', cascade='all, delete, delete-orphan')
 
 app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL_ASYNC", "sqlite:///converter.db")
-#app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://postgres:converter@34.125.88.73:5432/converter-dev"
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL_ASYNC")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['BUCKET'] = os.getenv("AUDIO_BUCKET")
-app.config['PROJECT_ID'] = os.getenv("PROJECT_ID")
 app.config['EMAIL_ENABLED'] = os.getenv("EMAIL_ENABLED")
 app.config['EMAIL_FROM'] = os.getenv("EMAIL_FROM")
 app.config['EMAIL_PWD'] = os.getenv("EMAIL_PWD")
+app.config['BUCKET'] = os.getenv("AUDIO_BUCKET")
+app.config['PROJECT'] = os.getenv("PROJECT_ID")
+app.config['TOPIC'] = os.getenv("TOPIC_ID")
+app.config['SUBSCRIPTION'] = os.getenv("TOPIC_SUBSCRIPTION")
 
 app_context = app.app_context()
 app_context.push()
 db.init_app(app)
 
-colaredis = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
-#colaredis = redis.Redis(host="redis-converter", port=6379, decode_responses=True, encoding="utf-8", )
-consumer = colaredis.pubsub()
-consumer.subscribe('audio')
+# colaredis = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
+# consumer = colaredis.pubsub()
+# consumer.subscribe('audio')
 mail = EmailSender()
+
+subscriber = pubsub_v1.SubscriberClient()
+subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+
+#def process_payload(message):
+def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
+    #print(f"Received {message.data}.")
+    logging.info('converter-async audio-topic: {}'.format(message.data))
+    message.ack()
+
+timeout = 3.0
+logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
 counter = 0
 while True:
     counter+=1
-    message = consumer.get_message(ignore_subscribe_messages=True)
+    # message = consumer.get_message(ignore_subscribe_messages=True)
     time.sleep(1)
     logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
-    if (counter%10==0):
-        logging.info('converter-async running ...')
 
-    if message is None:
-        continue
+    # if (counter%10==0):
+    #     logging.info('converter-async running ...')
+    # if message is None:
+    #     continue
+
+    # Wrap subscriber in a 'with' block to automatically call close() when done.
+    with subscriber:
+        try:
+            # When `timeout` is not set, result() will block indefinitely,
+            # unless an exception is encountered first.
+            streaming_pull_future.result(timeout=timeout)
+        except TimeoutError:
+            streaming_pull_future.cancel()  # Trigger the shutdown.
+            streaming_pull_future.result()  # Block until the shutdown is complete.
 
     logging.info('converter-async audio-topic: {}'.format(message))
     message_decoded = json.loads(message['data'])
@@ -84,8 +108,9 @@ while True:
     logging.info('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
     logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
-    #storage_client = storage.Client(app.config['PROJECT_ID'])
     storage_client = storage.Client()
+    #storage_client = storage.Client(app.config['PROJECT_ID'])
+
     bucket = storage_client.bucket(app.config['BUCKET'])
     blob = bucket.blob(filename)
     logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
@@ -118,7 +143,7 @@ while True:
 
     subject = filename +"  processed to "+ newformat
     message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
-    
+
     if(app.config['EMAIL_ENABLED']=='true'):
         mail.send_mail(email, subject, message)
-        logging.info('{} converter-async {}->{} sent'.format(uploadtime, format, newformat))
+        logging.info('converter-async {}->{} sent'.format(format, newformat))
