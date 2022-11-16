@@ -1,15 +1,13 @@
 import os
 import json
-import redis
+#import redis
 from os import remove
 from google.cloud import storage
+from google.cloud import pubsub_v1
 from flask import request, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from flask_restful import Resource
 from werkzeug.utils import secure_filename
-#from hashlib import algorithms_available
-#from sqlalchemy.exc import IntegrityError
-#from sqlalchemy import or_, desc
 from datetime import datetime
 from modelos import db, Task, TaskSchema, User, UserSchema
 
@@ -101,11 +99,9 @@ class VistaLogin(Resource):
 class VistaTasks(Resource):
 
     def __init__(self) -> None:
-        # self.admin_email = 'ag.castiblanco1207@uniandes.edu.co'
-        # self.redis_cli = redis.Redis(host="localhost", password="redispw", port=6379, decode_responses=True, encoding="utf-8", )
-        self.admin_email = 'c.solanor@uniandes.edu.co'
-        #self.redis_cli = redis.Redis(host="redis-converter", port=6379, decode_responses=True, encoding="utf-8", )
-        self.redis_cli = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
+        publisher = pubsub_v1.PublisherClient()
+        topic_path = publisher.topic_path(current_app.config['PROJECT'], current_app.config['TOPIC'])
+        # self.redis_cli = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
         super().__init__()
 
     # listar todas las tareas de conversion de un usuario 
@@ -159,11 +155,6 @@ class VistaTasks(Resource):
                 blob = bucket.blob(filename)
                 blob.upload_from_filename(file_path)
 
-                # with file.open("rb") as audiofile:
-                #     bytes = audiofile.read()
-                # with blob.open("wb") as audiobucket:
-                #     audiobucket.write(bytes)
-                
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
                 new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now())
@@ -179,8 +170,13 @@ class VistaTasks(Resource):
                             "upload_date": task_created.upload_date.strftime("%Y-%m-%d %H:%M:%S"), 
                             "username": user.username, 
                             "email": user.email}
-                self.redis_cli.publish("audio", json.dumps(message))
-                # sort_keys=True, default=str
+
+                print("post pubsub-init: ", self.topic_path)
+                print("post pubsub-init: ", json.dumps(message))
+                future = self.publisher.publish(self.topic_path, json.dumps(message).encode("utf-8"))
+                result = future.result()
+                print("post pubsub-done: ", result)
+                # self.redis_cli.publish("audio", json.dumps(message))
 
                 return task_schema.dump(new_task)
             return "Task was not created - empty file", 400
@@ -190,8 +186,9 @@ class VistaTasks(Resource):
 class VistaTask(Resource):
 
     def __init__(self) -> None:
-        self.admin_email = 'c.solanor@uniandes.edu.co'
-        self.redis_cli = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
+        publisher = pubsub_v1.PublisherClient()
+        topic_path = publisher.topic_path(current_app.config['PROJECT'], current_app.config['TOPIC'])
+        # self.redis_cli = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
         super().__init__()
 
     @jwt_required()
@@ -217,16 +214,6 @@ class VistaTask(Resource):
             blob = bucket.blob(archivo)
             blob.delete()
             print("deleted-2 ", archivo)
-
-            # file_path = os.path.join(audio_dir, filename)
-            # print("delete1 ", file_path)
-            # if os.path.isfile(file_path):
-            #     remove(file_path)
-
-            # file_path = os.path.join(audio_dir, archivo)
-            # print("delete2 ", file_path)
-            # if os.path.isfile(file_path):
-            #     remove(file_path)
 
             db.session.delete(task)
             db.session.commit()
@@ -282,8 +269,14 @@ class VistaTask(Resource):
                     "upload_date": task.upload_date.strftime("%Y-%m-%d %H:%M:%S"),
                     "username": user.username, 
                     "email": user.email}
-        #2022-10-23 23:19:23,17
-        self.redis_cli.publish("audio", json.dumps(message))
+
+        print("post pubsub-init: ", self.topic_path)
+        print("post pubsub-init: ", json.dumps(message))
+        future = self.publisher.publish(self.topic_path, json.dumps(message).encode("utf-8"))
+        result = future.result()
+        print("post pubsub-done: ", result)
+        # self.redis_cli.publish("audio", json.dumps(message))
+
         return task_schema.dump(task)
 
 
