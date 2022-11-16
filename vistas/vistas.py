@@ -99,8 +99,8 @@ class VistaLogin(Resource):
 class VistaTasks(Resource):
 
     def __init__(self) -> None:
-        publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(current_app.config['PROJECT'], current_app.config['TOPIC'])
+        self.publisher = pubsub_v1.PublisherClient()
+        self.topic_path = self.publisher.topic_path(current_app.config['PROJECT'], current_app.config['TOPIC'])
         # self.redis_cli = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
         super().__init__()
 
@@ -187,8 +187,8 @@ class VistaTasks(Resource):
 class VistaTask(Resource):
 
     def __init__(self) -> None:
-        publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(current_app.config['PROJECT'], current_app.config['TOPIC'])
+        self.publisher = pubsub_v1.PublisherClient()
+        self.topic_path = self.publisher.topic_path(current_app.config['PROJECT'], current_app.config['TOPIC'])
         # self.redis_cli = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
         super().__init__()
 
