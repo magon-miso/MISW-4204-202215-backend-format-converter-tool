@@ -57,12 +57,14 @@ db.init_app(app)
 mail = EmailSender()
 
 logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
+print('{} converter-async started'.format(datetime.now()))
 logging.info('converter-async started ...')
 
 #def process_payload(message):
 def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     # print(f"Received {message.data}.")
-    logging.info('converter-async audio-topic: {}'.format(message.data))
+    # print('{} converter-async audio-topic: {}'.format(datetime.now(), message.data))
+    # logging.info('converter-async audio-topic: {}'.format(message.data))
     message_decoded = json.loads(message.data) # message['data']
 
     task_id = message_decoded['id']
@@ -72,6 +74,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     uploadtime = message_decoded['upload_date']
     username = message_decoded['username']
     email = message_decoded['email']
+    print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
 
     song = None
     format = filename[len(filename)-3:]
@@ -86,6 +89,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     blob = bucket.blob(filename)
     logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
     blob.download_to_filename(filename)
+    # print('{} converter-async {} {}->{} downloaded'.format(datetime.now(), task_id, format, newformat))
     logging.info('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
 
     if(format=="mp3"):
@@ -103,6 +107,8 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
 
     blob_proc = bucket.blob(filename2)
     blob_proc.upload_from_filename(filename2)
+
+    # print('{} converter-async {} {}->{} uploaded'.format(datetime.now(), task_id, format, newformat))
     logging.info('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
 
     with app_context:
@@ -111,6 +117,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         task.status = "processed"
         db.session.add(task)
         db.session.commit()
+        print('{} converter-async {} {}->{} update {}'.format(datetime.now(), task_id, format, newformat, diff_time))
         logging.info('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     email_subject = filename +"  processed to "+ newformat
@@ -121,13 +128,15 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         logging.info('converter-async {}->{} sent'.format(format, newformat))
 
     message.ack()
+    print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, format, newformat))
     logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, format, newformat))
 
-timeout = 9
+
+timeout = 15
 counter = 0
 while True:
     counter+=1
-    time.sleep(1)
+    time.sleep(3)
     # message = consumer.get_message(ignore_subscribe_messages=True)
 
     # if (counter%15==0):
@@ -137,18 +146,15 @@ while True:
 
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-    now = datetime.strptime(datetime.now(), '%Y-%m-%d %H:%M:%S')
-    print('{} converter-async listening on {}'.format(now, subscription_path))
+    print('{} converter-async {} ...'.format(datetime.now(), subscription_path))
     logging.info('converter-async audio-topic: listening on '.format(subscription_path))
     streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
     with subscriber:
         try:
             # When `timeout` is not set, result() will block indefinitely,
-            # unless an exception is encountered first.         
-            now = datetime.strptime(datetime.now(), '%Y-%m-%d %H:%M:%S')       
-            print('{} converter-async streaming_pull_future.result'.format(now))
-            logging.info('converter-async streaming_pull_future.result')
+            # unless an exception is encountered first.
+            # print('{} converter-async streaming_pull_future.result'.format(datetime.now()))
             streaming_pull_future.result(timeout=timeout)
             # streaming_pull_future.result()
         except TimeoutError:
