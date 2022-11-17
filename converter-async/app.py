@@ -78,13 +78,13 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
     logging.info('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
-    print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
+    logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
     storage_client = storage.Client()
     #storage_client = storage.Client(app.config['PROJECT_ID'])
 
     bucket = storage_client.bucket(app.config['BUCKET'])
     blob = bucket.blob(filename)
-    print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
+    logging.info('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
     blob.download_to_filename(filename)
     logging.info('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
 
@@ -121,6 +121,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         logging.info('converter-async {}->{} sent'.format(format, newformat))
 
     message.ack()
+    logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, format, newformat))
 
 timeout = 3.0
 # subscriber = pubsub_v1.SubscriberClient()
@@ -154,4 +155,3 @@ while True:
             # streaming_pull_future.result()
         except TimeoutError:
             streaming_pull_future.cancel() # Trigger the shutdown.
-
