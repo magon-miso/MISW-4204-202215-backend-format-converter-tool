@@ -103,12 +103,13 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     blob_proc.upload_from_filename(filename2)
     print('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
 
-    # processed task in postgress
-    task = db.session.query(Task).filter(Task.id==task_id).first()
-    task.status = "processed"
-    db.session.add(task)
-    db.session.commit()
-    print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
+    with app_context:
+        # processed task in postgress
+        task = db.session.query(Task).filter(Task.id==task_id).first()
+        task.status = "processed"
+        db.session.add(task)
+        db.session.commit()
+        print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     subject = filename +"  processed to "+ newformat
     message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
