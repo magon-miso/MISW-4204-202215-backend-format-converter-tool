@@ -65,8 +65,8 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     # print(f"Received {message.data}.")
     # print('{} converter-async audio-topic: {}'.format(datetime.now(), message.data))
     # logging.info('converter-async audio-topic: {}'.format(message.data))
-    message_decoded = json.loads(message.data) # message['data']
 
+    message_decoded = json.loads(message.data) # message['data']
     task_id = message_decoded['id']
     # filepath = message_decoded['filepath']
     filename = message_decoded['filename']
@@ -75,6 +75,10 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     username = message_decoded['username']
     email = message_decoded['email']
     print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
+
+    message.ack()
+    print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, format, newformat))
+    logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, format, newformat))
 
     song = None
     format = filename[len(filename)-3:]
@@ -126,10 +130,6 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     if(app.config['EMAIL_ENABLED']=='true'):
         mail.send_mail(email, email_subject, email_message)
         logging.info('converter-async {}->{} sent'.format(format, newformat))
-
-    message.ack()
-    print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, format, newformat))
-    logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, format, newformat))
 
 
 timeout = 15
