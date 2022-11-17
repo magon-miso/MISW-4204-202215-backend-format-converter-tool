@@ -123,10 +123,10 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     message.ack()
 
 timeout = 3.0
-subscriber = pubsub_v1.SubscriberClient()
-subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-logging.info('converter-async audio-topic: listening on '.format(subscription_path))
-streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+# subscriber = pubsub_v1.SubscriberClient()
+# subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+# logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+# streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
 counter = 0
 while True:
@@ -140,10 +140,10 @@ while True:
     # if message is None:
     #     continue
 
-    # subscriber = pubsub_v1.SubscriberClient()
-    # subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-    # logging.info('converter-async audio-topic: listening on '.format(subscription_path))
-    # streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+    subscriber = pubsub_v1.SubscriberClient()
+    subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+    logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
     with subscriber:
         try:
