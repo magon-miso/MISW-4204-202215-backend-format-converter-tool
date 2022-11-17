@@ -59,9 +59,9 @@ logging.info('converter-async started ...')
 
 #def process_payload(message):
 def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
-    #print(f"Received {message.data}.")
+    print(f"Received {message.data}.")
     logging.info('converter-async audio-topic: {}'.format(message.data))
-    message_decoded = json.loads(message['data'])
+    message_decoded = json.loads(message.data) # message['data']
 
     task_id = message_decoded['id']
     # filepath = message_decoded['filepath']
