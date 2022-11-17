@@ -123,17 +123,11 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     message.ack()
     logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, format, newformat))
 
-timeout = 15
-# subscriber = pubsub_v1.SubscriberClient()
-# subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-# logging.info('converter-async audio-topic: listening on '.format(subscription_path))
-# streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
-
+timeout = 9
 counter = 0
 while True:
     counter+=1
-    time.sleep(3)
-
+    time.sleep(1)
     # message = consumer.get_message(ignore_subscribe_messages=True)
 
     # if (counter%15==0):
@@ -143,15 +137,17 @@ while True:
 
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-    print('converter-async audio-topic: listening on '.format(subscription_path))
+    now = datetime.strptime(datetime.now(), '%Y-%m-%d %H:%M:%S')
+    print('{} converter-async listening on {}'.format(now, subscription_path))
     logging.info('converter-async audio-topic: listening on '.format(subscription_path))
     streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
     with subscriber:
         try:
             # When `timeout` is not set, result() will block indefinitely,
-            # unless an exception is encountered first.                
-            print('converter-async streaming_pull_future.result')
+            # unless an exception is encountered first.         
+            now = datetime.strptime(datetime.now(), '%Y-%m-%d %H:%M:%S')       
+            print('{} converter-async streaming_pull_future.result'.format(now))
             logging.info('converter-async streaming_pull_future.result')
             streaming_pull_future.result(timeout=timeout)
             # streaming_pull_future.result()
