@@ -111,11 +111,11 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         db.session.commit()
         print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
-    subject = filename +"  processed to "+ newformat
-    message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
+    email_subject = filename +"  processed to "+ newformat
+    email_message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
 
     if(app.config['EMAIL_ENABLED']=='true'):
-        mail.send_mail(email, subject, message)
+        mail.send_mail(email, email_subject, email_message)
         logging.info('converter-async {}->{} sent'.format(format, newformat))
 
     message.ack()
