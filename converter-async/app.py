@@ -77,8 +77,8 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
 
     message.ack()
-    print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, format, newformat))
-    logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, format, newformat))
+    print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, filename, newformat))
+    logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, filename, newformat))
 
     song = None
     format = filename[len(filename)-3:]
