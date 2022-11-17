@@ -55,12 +55,14 @@ db.init_app(app)
 # consumer = colaredis.pubsub()
 # consumer.subscribe('audio')
 mail = EmailSender()
-print('converter-async started ...')
+
+logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
+logging.info('converter-async started ...')
 
 #def process_payload(message):
 def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     # print(f"Received {message.data}.")
-    print('converter-async audio-topic: {}'.format(message.data))
+    logging.info('converter-async audio-topic: {}'.format(message.data))
     message_decoded = json.loads(message.data) # message['data']
 
     task_id = message_decoded['id']
@@ -74,7 +76,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     song = None
     format = filename[len(filename)-3:]
     upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
-    print('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
+    logging.info('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
     print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
     storage_client = storage.Client()
@@ -84,7 +86,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     blob = bucket.blob(filename)
     print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
     blob.download_to_filename(filename)
-    print('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
+    logging.info('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
 
     if(format=="mp3"):
         song = AudioSegment.from_mp3(filename)
@@ -97,11 +99,11 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     logging.info('{} converter-async {} {}->{} export init {}'.format(uploadtime, task_id, format, newformat, filename2))    
     song.export(filename2, format=newformat)
     diff_time = datetime.now() - upload
-    print('{} converter-async {} {}->{} exported {}'.format(uploadtime, task_id, format, newformat, diff_time))
+    logging.info('{} converter-async {} {}->{} exported {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     blob_proc = bucket.blob(filename2)
     blob_proc.upload_from_filename(filename2)
-    print('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
+    logging.info('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
 
     with app_context:
         # processed task in postgress
@@ -109,7 +111,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         task.status = "processed"
         db.session.add(task)
         db.session.commit()
-        print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
+        logging.info('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     email_subject = filename +"  processed to "+ newformat
     email_message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
@@ -121,10 +123,10 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     message.ack()
 
 timeout = 3.0
-# subscriber = pubsub_v1.SubscriberClient()
-# subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-# logging.info('converter-async audio-topic: listening on '.format(subscription_path))
-# streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+subscriber = pubsub_v1.SubscriberClient()
+subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
 counter = 0
 while True:
@@ -132,22 +134,22 @@ while True:
     time.sleep(1)
 
     # message = consumer.get_message(ignore_subscribe_messages=True)
-    # logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
 
     # if (counter%15==0):
     #     logging.info('converter-async running ...')
     # if message is None:
     #     continue
 
-    subscriber = pubsub_v1.SubscriberClient()
-    subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-    print('converter-async audio-topic: listening on '.format(subscription_path))
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+    # subscriber = pubsub_v1.SubscriberClient()
+    # subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
+    # logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+    # streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
     with subscriber:
         try:
             # When `timeout` is not set, result() will block indefinitely,
             # unless an exception is encountered first.                
+            logging.info('converter-async streaming_pull_future.result')
             streaming_pull_future.result(timeout=timeout)
             # streaming_pull_future.result()
         except TimeoutError:
