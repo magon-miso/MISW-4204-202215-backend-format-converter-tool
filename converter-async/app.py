@@ -132,7 +132,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         logging.info('converter-async {}->{} sent'.format(format, newformat))
 
 
-timeout = 15
+timeout = 6
 counter = 0
 while True:
     counter+=1
@@ -159,3 +159,4 @@ while True:
             # streaming_pull_future.result()
         except TimeoutError:
             streaming_pull_future.cancel() # Trigger the shutdown.
+            streaming_pull_future.result() # block until shutdown is complete
