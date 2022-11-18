@@ -149,8 +149,9 @@ while True:
     print('{} converter-async {} ...'.format(datetime.now(), subscription_path))
     logging.info('converter-async {} ...'.format(subscription_path))
 
-    flow_control = pubsub_v1.types.FlowControl(max_messages=10)
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload, flow_control=flow_control)
+    # flow_control = pubsub_v1.types.FlowControl(max_messages=2)
+    # streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload, flow_control=flow_control)
+    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
     with subscriber:
         try:
