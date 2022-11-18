@@ -65,8 +65,8 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     # print(f"Received {message.data}.")
     # print('{} converter-async audio-topic: {}'.format(datetime.now(), message.data))
     # logging.info('converter-async audio-topic: {}'.format(message.data))
-    message_decoded = json.loads(message.data) # message['data']
 
+    message_decoded = json.loads(message.data) # message['data']
     task_id = message_decoded['id']
     # filepath = message_decoded['filepath']
     filename = message_decoded['filename']
@@ -75,6 +75,10 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     username = message_decoded['username']
     email = message_decoded['email']
     print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
+
+    message.ack()
+    print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, filename, newformat))
+    logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, filename, newformat))
 
     song = None
     format = filename[len(filename)-3:]
@@ -127,16 +131,12 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         mail.send_mail(email, email_subject, email_message)
         logging.info('converter-async {}->{} sent'.format(format, newformat))
 
-    message.ack()
-    print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, format, newformat))
-    logging.info('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, format, newformat))
 
-
-timeout = 15
+timeout = 2
 counter = 0
 while True:
     counter+=1
-    time.sleep(3)
+    time.sleep(1)
     # message = consumer.get_message(ignore_subscribe_messages=True)
 
     # if (counter%15==0):
@@ -147,7 +147,10 @@ while True:
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
     print('{} converter-async {} ...'.format(datetime.now(), subscription_path))
-    logging.info('converter-async audio-topic: listening on '.format(subscription_path))
+    logging.info('converter-async {} ...'.format(subscription_path))
+
+    # flow_control = pubsub_v1.types.FlowControl(max_messages=2)
+    # streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload, flow_control=flow_control)
     streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
 
     with subscriber:
@@ -159,3 +162,4 @@ while True:
             # streaming_pull_future.result()
         except TimeoutError:
             streaming_pull_future.cancel() # Trigger the shutdown.
+            streaming_pull_future.result() # block until shutdown is complete
