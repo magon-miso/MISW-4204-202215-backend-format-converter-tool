@@ -147,8 +147,10 @@ while True:
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
     print('{} converter-async {} ...'.format(datetime.now(), subscription_path))
-    logging.info('converter-async audio-topic: listening on '.format(subscription_path))
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
+    logging.info('converter-async {} ...'.format(subscription_path))
+
+    flow_control = pubsub_v1.types.FlowControl(max_messages=10)
+    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload, flow_control=flow_control)
 
     with subscriber:
         try:
