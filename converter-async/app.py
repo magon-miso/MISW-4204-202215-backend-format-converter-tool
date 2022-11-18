@@ -132,11 +132,11 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         logging.info('converter-async {}->{} sent'.format(format, newformat))
 
 
-timeout = 6
+timeout = 2
 counter = 0
 while True:
     counter+=1
-    time.sleep(3)
+    time.sleep(1)
     # message = consumer.get_message(ignore_subscribe_messages=True)
 
     # if (counter%15==0):
