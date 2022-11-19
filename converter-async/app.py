@@ -25,6 +25,8 @@ class Task(db.Model):
     #status = db.Column(Enum("uploaded", "processed", name='statusEnum'))
     status = db.Column(db.String(25))
     upload_date = db.Column(db.DateTime)
+    processed_date = db.Column(db.DateTime)
+
 
 class User(db.Model):
     #__tablename__ = 'User'
@@ -119,6 +121,7 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         # processed task in postgress
         task = db.session.query(Task).filter(Task.id==task_id).first()
         task.status = "processed"
+        task.processed_date = datetime.now()
         db.session.add(task)
         db.session.commit()
         print('{} converter-async {} {}->{} update {}'.format(datetime.now(), task_id, format, newformat, diff_time))

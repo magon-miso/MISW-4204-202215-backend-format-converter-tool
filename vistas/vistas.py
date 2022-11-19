@@ -157,7 +157,7 @@ class VistaTasks(Resource):
 
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
-                new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now())
+                new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now(), processed_date = None)
                 db.session.add(new_task)
                 db.session.commit()
 
