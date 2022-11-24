@@ -1,6 +1,7 @@
 runtime: python39
 #env: flex
-entrypoint: gunicorn --workers=5 --threads=2 --bind 0.0.0.0:5000 manage:app
+entrypoint: gunicorn --bind 0.0.0.0:5000 manage:app
+#entrypoint: gunicorn --workers=5 --threads=2 --bind 0.0.0.0:5000 manage:app
 #runtime_config:
 #  python_version: 3
 env_variables:

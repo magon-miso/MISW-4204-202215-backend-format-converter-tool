@@ -1,9 +1,9 @@
 runtime: python39
-env: flex
+#env: flex
 entrypoint: python3 app.py
 #entrypoint: python3 converter-async/app.py
-runtime_config:
-  python_version: 3
+#runtime_config:
+# python_version: 3
 env_variables:
     EMAIL_ENABLED: "false"
     TOPIC_ID: "audio-task"
