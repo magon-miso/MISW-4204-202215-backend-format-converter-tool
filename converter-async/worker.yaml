@@ -1,4 +1,4 @@
-runtime: python
+runtime: python39
 env: flex
 entrypoint: python3 app.py
 #entrypoint: python3 converter-async/app.py
