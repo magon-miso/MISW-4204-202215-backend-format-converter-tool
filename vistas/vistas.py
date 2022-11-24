@@ -170,12 +170,12 @@ class VistaTasks(Resource):
                             "username": user.username, 
                             "email": user.email}
 
-                logger.log_text(("post pubsub-init: ", self.topic_path)
-                logger.log_text(("post pubsub-init: ", json.dumps(message))
+                logger.log_text("post pubsub-init: ", self.topic_path)
+                logger.log_text("post pubsub-init: ", json.dumps(message))
                 data = json.dumps(message).encode("utf-8")
                 future = self.publisher.publish(self.topic_path, data=data)
                 result = future.result()
-                logger.log_text(("post pubsub-done: ", result)
+                logger.log_text("post pubsub-done: ", result)
                 # self.redis_cli.publish("audio", json.dumps(message))
 
                 return task_schema.dump(new_task)
