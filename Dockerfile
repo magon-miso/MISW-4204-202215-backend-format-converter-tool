@@ -14,9 +14,9 @@ COPY . ./
 # RUN apk add libpq-dev
 
 # set environment variables
-# ENV PYTHONDONTWRITEBYTECODE 1
-# ENV PYTHONUNBUFFERED 1
-ENV PYTHONUNBUFFERED True
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+# ENV PYTHONUNBUFFERED True
 
 # install dependencies
 # COPY ./requirements.txt /usr/src/app/requirements.txt
@@ -29,4 +29,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # two entrypoints: guicorn + monitor
 # ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
-CMD ["gunicorn", "--workers=2", "--threads=5", "--bind", "0.0.0.0:5000", "manage:app"]
+CMD ["gunicorn", "--workers=2", "--threads=2", "--bind", "0.0.0.0:5000", "manage:app"]
