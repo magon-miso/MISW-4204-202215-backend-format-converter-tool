@@ -14,9 +14,9 @@ from modelos import db, Task, TaskSchema, User, UserSchema
 
 task_schema = TaskSchema()
 user_schema = UserSchema()
-logging_client = logging.Client()
-logger = logging_client.logger("converter-api")
-
+#logging_client = logging.Client()
+#logger = logging_client.logger("converter-api")
+#logger.log_text("file_path:", file_path)
 
 class VistaSignup(Resource):
 
@@ -142,12 +142,12 @@ class VistaTasks(Resource):
                 if(not supported):
                     return "Task was not created - formats not supported", 400
 
-                logger.log_text("vista-tasks-post secure_filename: ", filename)
+                print("vista-tasks-post secure_filename: ", filename)
                 audio_dir = current_app.config['AUDIO_DIR']
                 os.makedirs(audio_dir, exist_ok=True)
                 file_path = os.path.join(audio_dir, filename)
                 file.save(file_path)
-                logger.log_text("file_path:", file_path)
+                print("file_path:", file_path)
                 
                 storage_client = storage.Client()
                 bucket = storage_client.bucket(current_app.config['BUCKET'])
@@ -170,12 +170,12 @@ class VistaTasks(Resource):
                             "username": user.username, 
                             "email": user.email}
 
-                logger.log_text("post pubsub-init: ", self.topic_path)
-                logger.log_text("post pubsub-init: ", json.dumps(message))
+                print("post pubsub-init: ", self.topic_path)
+                print("post pubsub-init: ", json.dumps(message))
                 data = json.dumps(message).encode("utf-8")
                 future = self.publisher.publish(self.topic_path, data=data)
                 result = future.result()
-                logger.log_text("post pubsub-done: ", result)
+                print("post pubsub-done: ", result)
                 # self.redis_cli.publish("audio", json.dumps(message))
 
                 return task_schema.dump(new_task)
@@ -210,10 +210,10 @@ class VistaTask(Resource):
 
             blob = bucket.blob(filename)
             blob.delete()
-            logger.log_text("deleted-1 ", filename)
+            print("deleted-1 ", filename)
             blob = bucket.blob(archivo)
             blob.delete()
-            logger.log_text("deleted-2 ", archivo)
+            print("deleted-2 ", archivo)
 
             db.session.delete(task)
             db.session.commit()
@@ -245,7 +245,7 @@ class VistaTask(Resource):
         os.makedirs(audio_dir, exist_ok=True)
         file_path = os.path.join(audio_dir, task.filename)
 
-        logger.log_text("put: ", id_task, file_path, task.newformat, newformat, task.status)
+        print("put: ", id_task, file_path, task.newformat, newformat, task.status)
         if(task.status=="processed"):
             filename = task.filename
             storage_client = storage.Client()
@@ -268,12 +268,12 @@ class VistaTask(Resource):
                     "username": user.username, 
                     "email": user.email}
 
-        logger.log_text("put pubsub-init: ", self.topic_path)
-        logger.log_text("put pubsub-init: ", json.dumps(message))
+        print("put pubsub-init: ", self.topic_path)
+        print("put pubsub-init: ", json.dumps(message))
         data = json.dumps(message).encode("utf-8")
         future = self.publisher.publish(self.topic_path, data=data)
         result = future.result()
-        logger.log_text("put pubsub-done: ", result)
+        print("put pubsub-done: ", result)
         # self.redis_cli.publish("audio", json.dumps(message))
 
         return task_schema.dump(task)
@@ -331,6 +331,6 @@ class VistaFile(Resource):
         expiration=datetime.timedelta(hours=1),
         # Allow GET requests using this URL.
         method="GET",)
-        logger.log_text("The signed url for {blob.name} is {url}")
+        print("The signed url for {blob.name} is {url}")
         
         return url
