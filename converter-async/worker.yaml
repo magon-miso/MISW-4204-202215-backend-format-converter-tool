@@ -2,8 +2,9 @@ runtime: custom
 env: flex
 entrypoint: python3 app.py
 #entrypoint: python3 converter-async/app.py
+runtime_config:
+  python_version: 3
 env_variables:
-  PORT: 8080
   EMAIL_ENABLED: "false"
   TOPIC_ID: "audio-task"
   TOPIC_SUBSCRIPTION: "audio-worker-sub"
