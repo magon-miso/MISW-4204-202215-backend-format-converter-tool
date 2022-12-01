@@ -1,6 +1,8 @@
 # pull official base image
 FROM python:3.10-slim
 
+EXPOSE 8080
+
 ENV APP_HOME /converter
 WORKDIR $APP_HOME
 COPY . ./
@@ -18,4 +20,6 @@ RUN pip install --upgrade pip
 # RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "app.py"]
+#ENTRYPOINT ["python", "converter-async/app.py"]
+#CMD ["python", "app.py"]
+CMD exec python app.py &
