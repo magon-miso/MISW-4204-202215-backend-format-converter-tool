@@ -1,17 +1,14 @@
 import os
 import json
-import time
-#import logging
-from enum import Enum
+import base64
 from datetime import datetime
 from pydub import AudioSegment
 from correo import EmailSender
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from google.cloud import storage
-from google.cloud import pubsub_v1
-from google.cloud import logging
-from concurrent.futures import TimeoutError
+#from google.cloud import pubsub_v1
+#from concurrent.futures import TimeoutError
 
 db = SQLAlchemy()
 
@@ -51,25 +48,30 @@ app_context = app.app_context()
 app_context.push()
 db.init_app(app)
 
-# colaredis = redis.Redis(host="10.182.0.3", port=6379, decode_responses=True, encoding="utf-8", )
-# consumer = colaredis.pubsub()
-# consumer.subscribe('audio')
 mail = EmailSender()
-# logging_client = logging.Client()
-# logger = logging_client.logger("converter-api")
-# logger.log_text('converter-async started ...')
-
-# logging.basicConfig(filename='converter.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
 print('{} converter-async started'.format(datetime.now()))
 
-#def process_payload(message):
-def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
-    # logger.log_text('{} converter-async audio-topic: {}'.format(datetime.now(), message.data))
-    # logging.info('converter-async audio-topic: {}'.format(message.data))
 
-    message_decoded = json.loads(message.data) # message['data']
+@app.route("/", methods=["POST"])
+def worker():
+    envelope = request.get_json()
+    if not envelope:
+        msg = "no pub/sub message received"
+        print(f"converter-async error: {msg}")
+        return f"Bad Request: {msg}", 400
+
+    if not isinstance(envelope, dict) or "message" not in envelope:
+        msg = "invalid pub/sub message format"
+        print(f"converter-async error: {msg}")
+        return f"Bad Request: {msg}", 400
+
+    pubsub_message = envelope["message"]
+    # print('{} converter-async audio-topic: {} '.format(datetime.now(), pubsub_message))
+    data_task =  base64.b64decode(pubsub_message["data"]).decode("utf-8").strip()
+    # print('{} converter-async audio-topic: {} '.format(datetime.now(), json.loads(data_task)))
+
+    message_decoded = json.loads(data_task) # message.data, message['data']
     task_id = message_decoded['id']
-    # filepath = message_decoded['filepath']
     filename = message_decoded['filename']
     newformat = message_decoded['newformat']
     uploadtime = message_decoded['upload_date']
@@ -77,26 +79,20 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
     email = message_decoded['email']
     print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
 
-    message.ack()
-    # print('{} converter-async {} {}->{} message ack sent'.format(datetime.now(), task_id, filename, newformat))
-    print('{} converter-async {} {}->{} message ack sent'.format(uploadtime, task_id, filename, newformat))
-
-    song = None
     format = filename[len(filename)-3:]
     upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
     print('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
     print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
     storage_client = storage.Client()
-    #storage_client = storage.Client(app.config['PROJECT_ID'])
 
     bucket = storage_client.bucket(app.config['BUCKET'])
     blob = bucket.blob(filename)
     print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
     blob.download_to_filename(filename)
-    # logger.log_text('{} converter-async {} {}->{} downloaded'.format(datetime.now(), task_id, format, newformat))
     print('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
 
+    song = None
     if(format=="mp3"):
         song = AudioSegment.from_mp3(filename)
     elif(format=="wav"):
@@ -112,19 +108,15 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
 
     blob_proc = bucket.blob(filename2)
     blob_proc.upload_from_filename(filename2)
-
-    # logger.log_text('{} converter-async {} {}->{} uploaded'.format(datetime.now(), task_id, format, newformat))
+    blob.make_public()
     print('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
 
-    with app_context:
-        # processed task in postgress
-        task = db.session.query(Task).filter(Task.id==task_id).first()
-        task.status = "processed"
-        task.processed_date = datetime.now()
-        db.session.add(task)
-        db.session.commit()
-        # print('{} converter-async {} {}->{} update {}'.format(datetime.now(), task_id, format, newformat, diff_time))
-        print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
+    task = db.session.query(Task).filter(Task.id==task_id).first()
+    task.status = "processed"
+    task.processed_date = datetime.now()
+    db.session.add(task)
+    db.session.commit()
+    print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     email_subject = filename +"  processed to "+ newformat
     email_message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
@@ -133,35 +125,4 @@ def process_payload(message: pubsub_v1.subscriber.message.Message) -> None:
         mail.send_mail(email, email_subject, email_message)
         print('converter-async {}->{} sent'.format(format, newformat))
 
-
-timeout = 2
-counter = 0
-while True:
-    counter+=1
-    time.sleep(1)
-    # message = consumer.get_message(ignore_subscribe_messages=True)
-
-    # if (counter%15==0):
-    #     logging.info('converter-async running ...')
-    # if message is None:
-    #     continue
-
-    subscriber = pubsub_v1.SubscriberClient()
-    subscription_path = subscriber.subscription_path(app.config['PROJECT'], app.config['SUBSCRIPTION'])
-    # print('{} converter-async {} ...'.format(datetime.now(), subscription_path))
-    print('converter-async {} ...'.format(subscription_path))
-
-    # flow_control = pubsub_v1.types.FlowControl(max_messages=2)
-    # streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload, flow_control=flow_control)
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=process_payload)
-
-    with subscriber:
-        try:
-            # When `timeout` is not set, result() will block indefinitely,
-            # unless an exception is encountered first.
-            # print('{} converter-async streaming_pull_future.result'.format(datetime.now()))
-            streaming_pull_future.result(timeout=timeout)
-            # streaming_pull_future.result()
-        except TimeoutError:
-            streaming_pull_future.cancel() # Trigger the shutdown.
-            streaming_pull_future.result() # block until shutdown is complete
+    return ("", 204)
