@@ -65,20 +65,22 @@ def worker():
         print(f"converter-async error: {msg}")
         return f"Bad Request: {msg}", 400
 
-    # pubsub_message = envelope["message"]
+    pubsub_message = envelope["message"]
+    print('{} converter-async audio-topic: {} '.format(datetime.now(), pubsub_message))
+
     # name = "World"
     # if isinstance(pubsub_message, dict) and "data" in pubsub_message:
     #     name = base64.b64decode(pubsub_message["data"]).decode("utf-8").strip()
     # print(f"Hello {name}!")
 
-    message_decoded = json.loads(envelope["message"]) # message.data, message['data']
-    task_id = message_decoded['id']
-    filename = message_decoded['filename']
-    newformat = message_decoded['newformat']
-    uploadtime = message_decoded['upload_date']
-    username = message_decoded['username']
-    email = message_decoded['email']
-    print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
+    # message_decoded = json.loads(envelope["message"]) # message.data, message['data']
+    # task_id = message_decoded['id']
+    # filename = message_decoded['filename']
+    # newformat = message_decoded['newformat']
+    # uploadtime = message_decoded['upload_date']
+    # username = message_decoded['username']
+    # email = message_decoded['email']
+    # print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
 
     # format = filename[len(filename)-3:]
     # upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
