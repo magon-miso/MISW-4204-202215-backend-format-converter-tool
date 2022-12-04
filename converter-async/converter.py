@@ -1,6 +1,6 @@
 import os
 import json
-#import time
+import base64
 from datetime import datetime
 from pydub import AudioSegment
 from correo import EmailSender
@@ -66,60 +66,57 @@ def worker():
         return f"Bad Request: {msg}", 400
 
     pubsub_message = envelope["message"]
-    print('{} converter-async audio-topic: {} '.format(datetime.now(), pubsub_message))
+    # print('{} converter-async audio-topic: {} '.format(datetime.now(), pubsub_message))
+    data_task =  base64.b64decode(pubsub_message["data"]).decode("utf-8").strip()
+    # print('{} converter-async audio-topic: {} '.format(datetime.now(), json.loads(data_task)))
 
-    # name = "World"
-    # if isinstance(pubsub_message, dict) and "data" in pubsub_message:
-    #     name = base64.b64decode(pubsub_message["data"]).decode("utf-8").strip()
-    # print(f"Hello {name}!")
+    message_decoded = json.loads(data_task) # message.data, message['data']
+    task_id = message_decoded['id']
+    filename = message_decoded['filename']
+    newformat = message_decoded['newformat']
+    uploadtime = message_decoded['upload_date']
+    username = message_decoded['username']
+    email = message_decoded['email']
+    print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
 
-    # message_decoded = json.loads(envelope["message"]) # message.data, message['data']
-    # task_id = message_decoded['id']
-    # filename = message_decoded['filename']
-    # newformat = message_decoded['newformat']
-    # uploadtime = message_decoded['upload_date']
-    # username = message_decoded['username']
-    # email = message_decoded['email']
-    # print('{} converter-async audio-topic: {} {} {} {} {}'.format(datetime.now(), task_id, uploadtime, filename, newformat, email))
+    format = filename[len(filename)-3:]
+    upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
+    print('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
 
-    # format = filename[len(filename)-3:]
-    # upload = datetime.strptime(uploadtime, '%Y-%m-%d %H:%M:%S')
-    # print('{} converter-async {} {}->{} init'.format(uploadtime, task_id, format, newformat))
+    print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
+    storage_client = storage.Client()
 
-    # print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
-    # storage_client = storage.Client()
+    bucket = storage_client.bucket(app.config['BUCKET'])
+    blob = bucket.blob(filename)
+    print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
+    blob.download_to_filename(filename)
+    print('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
 
-    # bucket = storage_client.bucket(app.config['BUCKET'])
-    # blob = bucket.blob(filename)
-    # print('{} converter-async {} {}->{} bucket {}'.format(uploadtime, task_id, format, newformat, filename))
-    # blob.download_to_filename(filename)
-    # print('{} converter-async {} {}->{} downloaded'.format(uploadtime, task_id, format, newformat))
+    song = None
+    if(format=="mp3"):
+        song = AudioSegment.from_mp3(filename)
+    elif(format=="wav"):
+        song = AudioSegment.from_wav(filename)
+    elif(format=="ogg"):
+        song = AudioSegment.from_ogg(filename)
 
-    # song = None
-    # if(format=="mp3"):
-    #     song = AudioSegment.from_mp3(filename)
-    # elif(format=="wav"):
-    #     song = AudioSegment.from_wav(filename)
-    # elif(format=="ogg"):
-    #     song = AudioSegment.from_ogg(filename)
+    filename2 = filename.replace("."+format, "."+newformat)
+    print('{} converter-async {} {}->{} export init {}'.format(uploadtime, task_id, format, newformat, filename2))    
+    song.export(filename2, format=newformat)
+    diff_time = datetime.now() - upload
+    print('{} converter-async {} {}->{} exported {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
-    # filename2 = filename.replace("."+format, "."+newformat)
-    # print('{} converter-async {} {}->{} export init {}'.format(uploadtime, task_id, format, newformat, filename2))    
-    # song.export(filename2, format=newformat)
-    # diff_time = datetime.now() - upload
-    # print('{} converter-async {} {}->{} exported {}'.format(uploadtime, task_id, format, newformat, diff_time))
+    blob_proc = bucket.blob(filename2)
+    blob_proc.upload_from_filename(filename2)
+    blob.make_public()
+    print('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
 
-    # blob_proc = bucket.blob(filename2)
-    # blob_proc.upload_from_filename(filename2)
-    # blob.make_public()
-    # print('{} converter-async {} {}->{} uploaded'.format(uploadtime, task_id, format, newformat))
-
-    # task = db.session.query(Task).filter(Task.id==task_id).first()
-    # task.status = "processed"
-    # task.processed_date = datetime.now()
-    # db.session.add(task)
-    # db.session.commit()
-    # print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
+    task = db.session.query(Task).filter(Task.id==task_id).first()
+    task.status = "processed"
+    task.processed_date = datetime.now()
+    db.session.add(task)
+    db.session.commit()
+    print('{} converter-async {} {}->{} update {}'.format(uploadtime, task_id, format, newformat, diff_time))
 
     email_subject = filename +"  processed to "+ newformat
     email_message = username +", your audio file "+ filename +" has been processed to "+ newformat +" succesfully"
