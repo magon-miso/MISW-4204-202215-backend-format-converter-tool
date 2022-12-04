@@ -1,6 +1,8 @@
 # pull official base image
 FROM python:3.10-slim
 
+EXPOSE 8080
+
 ENV APP_HOME /converter
 WORKDIR $APP_HOME
 COPY . ./
