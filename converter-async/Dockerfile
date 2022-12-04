@@ -18,4 +18,5 @@ RUN pip install --upgrade pip
 # RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "app.py"]
+#CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
+CMD ["gunicorn", "--workers=2", "--threads=2", "--bind", "0.0.0.0:5000", "main:converter"]
