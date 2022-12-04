@@ -1,7 +1,7 @@
 from flask.cli import FlaskGroup
-from converter import converter
+from converter import app
 
-cli = FlaskGroup(converter)
+cli = FlaskGroup(app)
 
 if __name__ == "__main__":
     cli()
