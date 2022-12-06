@@ -4,6 +4,7 @@ import json
 from os import remove
 from google.cloud import storage
 from google.cloud import pubsub_v1
+from google.cloud import logging
 from flask import request, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from flask_restful import Resource
@@ -13,7 +14,9 @@ from modelos import db, Task, TaskSchema, User, UserSchema
 
 task_schema = TaskSchema()
 user_schema = UserSchema()
-
+#logging_client = logging.Client()
+#logger = logging_client.logger("converter-api")
+#logger.log_text("file_path:", file_path)
 
 class VistaSignup(Resource):
 
@@ -110,7 +113,6 @@ class VistaTasks(Resource):
     @jwt_required()
     def get(self):
         user_id = get_jwt_identity()
-        #print("vista-tasks-get user_id: ", user_id)
         tasks = db.session.query(Task).select_from(Task).filter(Task.user==user_id).all()
         return [task_schema.dump(t) for t in tasks]
 
@@ -118,15 +120,12 @@ class VistaTasks(Resource):
     @jwt_required()
     def post(self):
         filename = None
-        print("")
         # if 'fileName' in request.files:
         if 'file' in request.files:
             #file = request.files['fileName']
             file = request.files['file']
 
-            # print("file.filename: ", file.filename)
             if file.filename:                
-                #print("vista-tasks-post file.filename: ", file.filename)
                 filename = secure_filename(file.filename)
 
                 format = file.filename[len(file.filename)-3:]
@@ -143,7 +142,7 @@ class VistaTasks(Resource):
                 if(not supported):
                     return "Task was not created - formats not supported", 400
 
-                #print("vista-tasks-post secure_filename: ", filename)
+                print("vista-tasks-post secure_filename: ", filename)
                 audio_dir = current_app.config['AUDIO_DIR']
                 os.makedirs(audio_dir, exist_ok=True)
                 file_path = os.path.join(audio_dir, filename)
@@ -157,7 +156,7 @@ class VistaTasks(Resource):
 
                 #user_id=current_user.id
                 user_id = get_jwt_identity()
-                new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now())
+                new_task = Task(filename=filename, newformat=newformat, user=user_id, status="uploaded", upload_date=datetime.now(), processed_date = None)
                 db.session.add(new_task)
                 db.session.commit()
 
@@ -246,9 +245,7 @@ class VistaTask(Resource):
         os.makedirs(audio_dir, exist_ok=True)
         file_path = os.path.join(audio_dir, task.filename)
 
-        print("")
         print("put: ", id_task, file_path, task.newformat, newformat, task.status)
-
         if(task.status=="processed"):
             filename = task.filename
             storage_client = storage.Client()
@@ -271,12 +268,12 @@ class VistaTask(Resource):
                     "username": user.username, 
                     "email": user.email}
 
-        print("post pubsub-init: ", self.topic_path)
-        print("post pubsub-init: ", json.dumps(message))
+        print("put pubsub-init: ", self.topic_path)
+        print("put pubsub-init: ", json.dumps(message))
         data = json.dumps(message).encode("utf-8")
         future = self.publisher.publish(self.topic_path, data=data)
         result = future.result()
-        print("post pubsub-done: ", result)
+        print("put pubsub-done: ", result)
         # self.redis_cli.publish("audio", json.dumps(message))
 
         return task_schema.dump(task)
@@ -334,6 +331,6 @@ class VistaFile(Resource):
         expiration=datetime.timedelta(hours=1),
         # Allow GET requests using this URL.
         method="GET",)
-        print(f"The signed url for {blob.name} is {url}")
+        print("The signed url for {blob.name} is {url}")
         
         return url

@@ -13,7 +13,7 @@ class Task(db.Model):
     user = db.Column(db.Integer, db.ForeignKey("user.id"))
     status = db.Column(db.Enum("uploaded", "processed", name='statusEnum'))
     upload_date = db.Column(db.DateTime)
-
+    processed_date = db.Column(db.DateTime)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
