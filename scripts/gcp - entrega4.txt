@@ -1,0 +1,84 @@
+jmeter-pwd			]nhL&4<O;Vxp5TI
+pgadmin master pwd	converter36
+
+load balancer		34.111.178.137
+web server 			34.125.87.104:5000
+
+- Entrega “exactamente una vez”
+Versiones recomendadas de la biblioteca cliente
+Para obtener el mejor rendimiento, usa la versión más reciente de la biblioteca cliente de Python v2.13.6 o superior,
+
+
+# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:converter@34.125.88.73:5432/converter-dev"
+# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:converter@34.125.73.234:5432/converter-dev"
+
+- IAM
+
+Compute Engine default service account > Pub/Sub Admin
+
+- webserver + worker instances:
+
+access scope - set access for each API: 
+Cloud Pub/Sub	Enabled
+Storage		Read Write
+
+
+=========
+webserver
+=========
+
+sudo su
+cd /usr/local/src
+
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+cd MISW-4204-202215-backend-format-converter-tool/
+pip install -r requirements.txt
+
+ls -la 
+chmod +x *
+
+mysql-private	10.38.224.3
+mysql-public	34.125.73.234
+
+cd /usr/local/src/MISW-4204-202215-backend-format-converter-tool
+#export TOPIC_ID=audio-task
+export TOPIC_ID=audio-api-test
+export PROJECT_ID=formatconvertertool-entrega2
+export AUDIO_BUCKET=format-converter-4204-bucket
+export DATABASE_URL=postgresql://postgres:converter@10.38.224.3:5432/converter-dev
+
+gunicorn --workers=5 --threads=2 --bind 0.0.0.0:5000 manage:app
+
+
+======
+worker
+======
+
+sudo su
+cd /usr/local/src
+
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+cd MISW-4204-202215-backend-format-converter-tool/
+pip install -r requirements.txt
+
+ls -la 
+chmod +x *
+
+export EMAIL_FROM=scesar.ing@gmail.com
+export EMAIL_PWD=awfmrxdbjyqnacxh
+
+export EMAIL_ENABLED=false
+export TOPIC_ID=audio-task
+export TOPIC_SUBSCRIPTION=audio-worker-sub
+
+export PROJECT_ID=formatconvertertool-entrega2
+export AUDIO_BUCKET=format-converter-4204-bucket
+export DATABASE_URL_ASYNC=postgresql+psycopg2://postgres:converter@10.38.224.3:5432/converter-dev
+# export DATABASE_URL_ASYNC=postgresql+psycopg2://postgres:converter@34.125.73.234:5432/converter-dev
+
+mysql-private	10.38.224.3
+mysql-public	34.125.73.234
+
+cd /usr/local/src/MISW-4204-202215-backend-format-converter-tool
+python3 converter-async/app.py
+

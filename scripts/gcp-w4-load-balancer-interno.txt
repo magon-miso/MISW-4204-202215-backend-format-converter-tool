@@ -1,0 +1,286 @@
+En este lab, aprenderá a realizar las siguientes tareas:
+
+- Crear reglas de firewall de HTTP y de verificación de estado
+- Configurar dos plantillas de instancias
+- Crear dos grupos de instancias administrados
+- Configurar y probar un balanceador de cargas interno
+
+Tarea 1: Configure reglas de firewall de HTTP y de verificación de estado
+
+
+
+Tarea 2: Configure las plantillas de instancias y cree los grupos de instancias
+
+- Configure las plantillas de instancias
+
+En la consola, navegue a Menú de navegación > Compute Engine > Plantillas de instancias.
+
+Haga clic en Crear plantilla de instancias.
+
+En Nombre, escriba instance-template-1.
+
+En Serie, seleccione N1.
+
+Haga clic en Opciones avanzadas.
+
+Haga clic en Herramientas de redes.
+
+En Etiquetas de red, especifique lb-backend.
+
+Nota: La etiqueta de red lb-backend garantiza que se apliquen las reglas de firewall de HTTP y de verificación de estado a estas instancias.
+En Interfaces de red, haga clic en el ícono del menú desplegable para editar.
+
+Configure los siguientes valores y deje el resto con la configuración predeterminada:
+
+Red	my-internal-app
+Subred	subnet-a
+
+Haga clic en Listo.
+
+Haga clic en Administración.
+
+En Metadatos, haga clic en Agregar elemento y especifique lo siguiente:
+
+startup-script-url	gs://cloud-training/gcpnet/ilb/startup.sh
+
+Nota: La clave startup-script-url especifica una secuencia de comandos que se ejecutará cuando se inicien las instancias. 
+Esta secuencia de comandos instala Apache y cambia la página de bienvenida a fin de incluir la IP del cliente y el nombre, 
+la región y la zona de la instancia de VM. Puede explorar esta secuencia de comandos.
+
+Haga clic en Crear.
+
+Espere a que se cree la plantilla de instancias.
+
+
+- Configure la próxima plantilla de instancias
+
+Copie instance-template-1 a fin de crear otra plantilla de instancias para subnet-b:
+
+Permanezca en Plantillas de instancia, marque el cuadro junto a instance-template-1 y, luego, haga clic en Copiar. 
+Verá que la instancia tiene el nombre instance-template-2.
+
+Haga clic en Opciones avanzadas.
+
+Haga clic en la pestaña Redes.
+
+En Interfaces de red, haga clic en el ícono del menú desplegable para editar.
+
+Seleccione subnet-b como la Subred.
+
+Haga clic en Listo y, luego, en Crear.
+
+
+- Cree los grupos de instancias administrados
+
+Cree un grupo de instancias administrado en subnet-a (us-central1-a) y otro en subnet-b (us-central1-b).
+
+En el panel izquierdo de Compute Engine, haga clic en Grupos de instancias y, luego, en Crear grupo de instancias.
+
+Configure los siguientes valores y deje el resto con la configuración predeterminada:
+
+Propiedad	Valor (escriba el valor o seleccione la opción como se especifica)
+Nombre			instance-group-1
+Plantilla de instancias	instance-template-1
+Ubicación		Zona única
+Región			us-central1
+Zona			us-central1-a
+Ajuste de escala automático > Cantidad mínima de instancias	1
+Ajuste de escala automático > Cantidad máxima de instancias	5
+Ajuste de escala automático > Métricas de ajuste de escala automático (haga clic en el ícono del menú desplegable para editar) > Tipo de métrica	Uso de CPU
+Uso de CPU objetivo	80
+Período de inactividad	45
+
+
+Nota: Los grupos de instancias administrados ofrecen funciones de ajuste de escala automático que le permiten agregar o quitar automáticamente instancias de dichos grupos, según los aumentos o las disminuciones de la carga. El ajuste de escala automático ayuda a sus aplicaciones a manejar fácilmente los aumentos en el tráfico y a reducir los costos cuando hay menos demanda de recursos. Usted simplemente define la política de ajuste de escala automático, y el escalador automático realiza el ajuste correspondiente según la carga medida.
+
+Haga clic en Crear.
+
+Repita el mismo procedimiento para instance-group-2 en us-central1-b:
+
+Haga clic en Crear grupo de instancias.
+
+Configure los siguientes valores y deje el resto con la configuración predeterminada
+
+ropiedad	Valor (escriba el valor o seleccione la opción como se especifica)
+Nombre				instance-group-2
+Plantilla de instancias		instance-template-2
+Ubicación			Zona única
+Región				us-central1
+Zona				us-central1-b
+Ajuste de escala automático > Cantidad mínima de instancias	1
+Ajuste de escala automático > Cantidad máxima de instancias	5
+Ajuste de escala automático > Métricas de ajuste de escala automático (haga clic en el ícono del menú desplegable para editar) > Tipo de métrica	Uso de CPU
+Uso de CPU objetivo	80
+Período de inactividad	45
+
+Haga clic en Crear.
+
+
+- Verifique los backends
+
+Verifique que se creen las instancias de VM en ambas subredes y cree una VM de utilidad para acceder a los sitios HTTP de los backends.
+
+En Compute Engine, haga clic en Instancias de VM.
+
+Observe las dos instancias que comienzan con instance-group-1 y con instance-group-2.
+
+Estas instancias se encuentran en zonas separadas y sus direcciones IP internas son parte de los bloques CIDR de subnet-a y subnet-b.
+
+Haga clic en Crear instancia.
+
+Configure los siguientes valores y deje el resto con la configuración predeterminada:
+
+Propiedad	Valor (escriba el valor o seleccione la opción como se especifica)
+Nombre		utility-vm
+Región		us-central1
+Zona		us-central1-f
+Serie		N1
+Tipo de máquina	f1-micro (1 CPU virtual compartida)
+
+Haga clic en Opciones avanzadas.
+
+Haga clic en Herramientas de redes.
+
+En Interfaces de red, haga clic en el ícono del menú desplegable para editar.
+
+Configure los siguientes valores y deje el resto con la configuración predeterminada:
+
+Propiedad	Valor (escriba el valor o seleccione la opción como se especifica)
+Red					my-internal-app
+Subred					subnet-a
+IP interna principal			Efímera (personalizada)
+Dirección IP efímera personalizada	10.10.20.50
+
+Haga clic en Listo y, luego, en Crear.
+
+Haga clic en Revisar mi progreso para verificar el objetivo.
+
+Observe que las direcciones IP internas de los backends son 10.10.20.2 y 10.10.30.2.
+
+Nota: Si estas direcciones IP son diferentes, reemplácelas en los dos comandos curl a continuación.
+
+En utility-vm, haga clic en SSH para iniciar una terminal y conectarse.
+
+A fin de verificar la página de bienvenida de instance-group-1-xxxx, ejecute el siguiente comando:
+
+curl 10.10.20.2
+
+A fin de verificar la página de bienvenida de instance-group-2-xxxx, ejecute el siguiente comando:
+
+curl 10.10.30.2
+
+
+
+
+Tarea 3: Configure el balanceador de cargas interno
+
+- Inicie la configuración
+
+En la consola de Cloud, navegue a Menú de navegación > Servicios de red > Balanceo de cargas y, luego, haga clic en Crear balanceador de cargas.
+
+En Balanceo de cargas de TCP, haga clic en Iniciar configuración.
+
+En Orientado a Internet o solo interno, seleccione Solo entre mis VMs.
+
+Nota: La opción Solo entre mis VMs hace que el balanceador de cargas sea interno. Esta opción requiere que los backends se encuentren en una sola región (us-central1) y no permite que descargue el procesamiento de TCP en el balanceador de cargas.
+
+Haga clic en Continuar.
+
+En Nombre, escriba my-ilb.
+
+En Región, seleccione us-central1.
+
+En Red, seleccione my-internal-app.
+
+
+- Configure el servicio de backend regional
+
+El servicio de backend supervisa los grupos de instancias y también impide que superen el uso configurado.
+
+Haga clic en Configuración de backend.
+
+Configure los siguientes valores y deje el resto con la configuración predeterminada:
+
+Propiedad	Valor (seleccione la opción como se especifica)
+Grupo de instancias	instance-group-1 (us-central1-a)
+
+Haga clic en Agregar backend.
+
+En Grupo de instancias, seleccione instance-group-2 (us-central1-b).
+
+En Verificación de estado, seleccione Crear una verificación de estado.
+
+Configure los siguientes valores y deje el resto con la configuración predeterminada:
+
+ropiedad	Valor (seleccione la opción como se especifica)
+Nombre	my-ilb-health-check
+Protocolo	TCP
+Puerto	80
+
+Nota: Las verificaciones de estado determinan qué instancias pueden recibir nuevas conexiones. Esta verificación de estado HTTP sondea las instancias cada 5 segundos, espera hasta 5 segundos para recibir una respuesta y considera que 2 intentos exitosos o 2 intentos con errores indican que están en buen estado o en mal estado, respectivamente.
+
+Haga clic en Guardar.
+
+Haga clic en Listo.
+
+Verifique que haya una marca de verificación azul junto a Configuración de backend en la consola de Cloud. De no ser así, vuelva a revisar que haya completado todos los pasos anteriores.
+
+
+- Configure el frontend
+
+El frontend reenvía el tráfico al backend.
+
+Haga clic en Configuración de frontend.
+
+Especifique los siguientes valores y deje los demás con sus configuraciones predeterminadas:
+
+Propiedad	Valor (escriba el valor o seleccione la opción como se especifica)
+Subred	subnet-b
+IP interna	En Dirección IP, seleccione Crear dirección IP.
+
+Especifique los siguientes valores y deje los demás con sus configuraciones predeterminadas:
+
+Propiedad	Valor (escriba el valor o seleccione la opción como se especifica)
+Nombre	my-ilb-ip
+Dirección IP estática	Permitirme elegir
+Dirección IP personalizada	10.10.30.5
+
+Haga clic en Reservar.
+
+En Número de puerto, escriba 80.
+
+Haga clic en Listo.
+
+- Revise y cree el balanceador de cargas interno
+
+Haga clic en Revisar y finalizar.
+
+Revise el backend y el frontend.
+
+Haga clic en Crear. Espere a que se cree el balanceador de cargas antes de pasar a la siguiente tarea.
+
+Haga clic en Revisar mi progreso para verificar el objetivo.
+
+
+
+Tarea 4: Pruebe el balanceador de cargas interno
+
+Verifique que la dirección IP de my-ilb reenvíe el tráfico a instance-group-1 en us-central1-a y a instance-group-2 en us-central1-b.
+
+- Acceda al balanceador de cargas interno
+
+En la consola de Cloud, navegue a Menú de navegación > Compute Engine > Instancias de VM.
+
+En utility-vm, haga clic en SSH para iniciar una terminal y conectarse.
+
+A fin de verificar que el balanceador de cargas interno reenvíe el tráfico, ejecute el siguiente comando:
+
+curl 10.10.30.5
+
+Nota: Como era de esperar, el tráfico se reenvía del balanceador de cargas interno (10.10.30.5) al backend.
+
+Ejecute el mismo comando un par de veces más.
+
+En el resultado, debería poder ver las respuestas de instance-group-1 en us-central1-a y de instance-group-2 en us-central1-b.
+
+

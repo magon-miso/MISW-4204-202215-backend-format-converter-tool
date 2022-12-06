@@ -1,0 +1,61 @@
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "10.38.224.3", port 5432 failed: Connection timed out
+        Is the server running on that host and accepting TCP/IP connections?
+
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "34.125.73.234", port 5432 failed: Connection timed out
+        Is the server running on that host and accepting TCP/IP connections?
+
+jmeter-pwd	]nhL&4<O;Vxp5TI
+git config --list
+git config --global user.name magon-miso 
+git config --global user.email m.agonf@uniandes.edu.co
+
+- APIs & Services > Library, Search: App Engine Admin, Clic en tarjeta App Engine Admin API, Clic en Enable
+  Serverless VPC Access API
+- VPC Network > Serverless VPC access > converter-vpc-connector
+
+- Activate Cloud Shell
+
+- webserver
+
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+cd MISW-4204-202215-backend-format-converter-tool/
+
+git checkout -b develop
+git pull origin develop
+
+dev_appserver.py app.yaml
+
+gcloud app deploy
+gcloud app browse
+
+
+- worker
+
+cd MISW-4204-202215-backend-format-converter-tool/converter-async/
+
+dev_appserver.py app.yaml
+
+
+https://formatconvertertool-entrega2.appspot.com
+
+
+@app.route('/upload', methods=['POST'])
+def upload() -> str:
+    uploaded_file = request.files.get('file')
+    if not uploaded_file:
+        return 'No file uploaded.', 400
+
+    gcs = storage.Client()
+    bucket = gcs.get_bucket(CLOUD_STORAGE_BUCKET)
+    blob = bucket.blob(uploaded_file.filename)
+    blob.upload_from_string(uploaded_file.read(), content_type=uploaded_file.content_type)
+    blob.make_public()
+    # The public URL can be used to directly access the uploaded file via HTTP.
+    return blob.public_url
+
+
+vpc_access_connector:
+ name: projects/formatconvertertool-entrega2/locations/us-west4/connectors/converter-vpc-connector
+
+    manual_scaling:
+      instances: 1

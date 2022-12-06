@@ -1,0 +1,127 @@
+conclusiones
+
+- en caso de continuar implementando instancias Compute Engine, se recomienda la creación de instancias compute-optimized de la serie C2.
+
+- llevar a una tarea asincrona el guardado del archivo de audio en el bucket
+
+- mejorar el tiempo de arranque de las instancias del grupo utilizando contenedores en vez de instancias de máquinas virtuales
+
+
+sudo su
+cd ../andergcp
+
+#app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:converter@34.125.88.73:5432/converter-dev"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:converter@34.125.73.234:5432/converter-dev"
+
+export AUDIO_BUCKET=format-converter-4204-bucket
+export DATABASE_URL=postgresql://postgres:converter@34.125.73.234:5432/converter-dev
+
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+cd MISW-4204-202215-backend-format-converter-tool/
+pip install -r requirements.txt
+
+ls -la 
+chmod +x *
+
+
+cd /usr/local/src/MISW-4204-202215-backend-format-converter-tool
+gunicorn --workers=5 --threads=2 --bind 0.0.0.0:5000 manage:app
+
+
+- worker
+
+pip install --upgrade google-cloud-storage
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+
+#export DATABASE_URL_ASYNC=postgresql+psycopg2://postgres:converter@34.125.88.73:5432/converter-dev
+
+export DATABASE_URL_ASYNC=postgresql+psycopg2://postgres:converter@10.38.224.3:5432/converter-dev
+export PROJECT_ID=formatconvertertool-entrega2
+export AUDIO_BUCKET=format-converter-4204-bucket
+export EMAIL_FROM=scesar.ing@gmail.com
+export EMAIL_PWD=awfmrxdbjyqnacxh
+export EMAIL_ENABLED=false
+
+cd MISW-4204-202215-backend-format-converter-tool/
+python3 converter-async/app.py
+
+python3 converter-async/app.py --daemon
+
+
+
+ME = "scesar.ing@gmail.com"
+my_password = r"awfmrxdbjyqnacxh"
+
+
+
+
+ganar root access a la VM web-converter para checar logs (ya se configuro en IAM el rol compute admin para la cuenta principal)
+sudo passwd
+sudo su
+Moat8Tempo2Pat
+
+
+Go to IAM & Admin.
+Select IAM.
+Find your user name service account (basically your google account) and click Edit-member.
+Add another role --> select 'Compute Engine' - 'Compute Admin'
+Restart your Compute VM.
+open SSH shell and run the command 'sudo passwd'
+enter a brand new password. Voilà!
+sudo su
+
+
+
+Crear instancia redis
+
+- shell:
+docker pull redis
+docker tag redis gcr.io/formatconvertertool-entrega2/redis
+docker push gcr.io/formatconvertertool-entrega2/redis
+
+http://gcr.io/formatconvertertool-entrega2/redis
+
+
+lon
+Running Docker container on Google Compute Engine
+https://www.section.io/engineering-education/docker-containers-on-compute-engine/
+
++ Building the Container Image (desde GCP Shell)
+
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+cd MISW-4204-202215-backend-format-converter-tool/
+ls -la Dockerfile
+chmod +x Dockerfile
+ls -la Dockerfile
+
+gcloud builds submit --tag gcr.io/formatconvertertool-entrega2/web-converter:latest
+
+http://gcr.io/formatconvertertool-entrega2/
+
+
+- Configure a firewall rule
+  On the sidebar, head over to the networking tab ⇾ VPC network ⇾ select firewall. Then, click on CREATE FIREWALL BUTTON.
+
+gcloud compute --project=formatconvertertool-entrega2 firewall-rules create allow-http-5000 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:5000 --source-ranges=0.0.0.0/0 --target-tags=http-server-5000
+
+Name : allow-http-5000
+Targets: Specified target tags
+Target tags: http-server-5000
+Source-ip: 0.0.0.0/0
+TCP: 5000
+
+
+- Creating the GCE VM instance.
+  From the sidebar menu in the console, go to COMPUTE ⇾ Compute Engine ⇾ VM instances, then click CREATE INSTANCE.
+
+Name : web-converter-instance
+Machine configuration(Series): N1
+Machine configuration(Machine type): f1-micro
+Boot Disk: Debian GNU/Linux 10 (buster)
+Click the Management, security, disks, networking, sole tenancy link to expand the available options.
+Click on the Networking tab.
+For Network tags, enter HTTP-server-8080 that we set up in the firewall creation.
+
+gcloud compute instances create-with-container web-instance --project=formatconvertertool-entrega2 --zone=us-central1-c --machine-type=e2-small --network-interface=network-tier=PREMIUM,subnet=default --maintenance-policy=MIGRATE --provisioning-model=STANDARD --service-account=73401938440-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --tags=http-server-5000 --image=projects/cos-cloud/global/images/cos-stable-101-17162-40-16 --boot-disk-size=10GB --boot-disk-type=pd-balanced --boot-disk-device-name=web-instance --container-image=gcr.io/formatconvertertool-entrega2/web-converter-0.9 --container-restart-policy=never --container-privileged --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --labels=container-vm=cos-stable-101-17162-40-16
+
+gcloud compute instances list

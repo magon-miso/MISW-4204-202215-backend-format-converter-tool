@@ -1,0 +1,116 @@
+jmeter-pwd	]nhL&4<O;Vxp5TI
+https://web-converter-q6wmxhymzq-wn.a.run.app
+
+git config --list
+git config --global user.name magon-miso 
+git config --global user.email m.agonf@uniandes.edu.co
+
++ APIs & Services > Library, Search and Enable
+  Enable Artifact Registry, Cloud Build, and Cloud Run 
+* App Engine Admin, Cloud SQL Admin
+
++ IAM - Add roles to App Engine default service account: Cloud SQL Admin, Cloud SQL Client, Cloud SQL Editor
+
++ Activate Cloud Shell
+
+WEBSERVER
+=========
+
++ change reqirements.txt
+#psycopg2==2.9.5
+psycopg2-binary
+
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+cd MISW-4204-202215-backend-format-converter-tool/
+
+git checkout -b develop
+git pull origin develop
+
+gcloud sql instances describe converter-db
+  connectionName: formatconvertertool-entrega2:us-west4:converter-db
+
+gcloud config set run/platform managed
+gcloud config set run/region us-west4
+
+gcloud run deploy web-converter \
+  --source . \
+  --port 5000 \
+  --max-instances=3 \
+  --platform managed \
+  --region us-west4 \
+  --allow-unauthenticated \
+  --add-cloudsql-instances=formatconvertertool-entrega2:us-west4:converter-db \
+  --set-env-vars "PROJECT_ID=formatconvertertool-entrega2" \
+  --set-env-vars "TOPIC_ID=audio-task" \
+  --set-env-vars "AUDIO_BUCKET=format-converter-4204-bucket" \
+  --set-env-vars "DATABASE_URL=postgresql://postgres:converter@localhost/converter-dev?host=/cloudsql/formatconvertertool-entrega2:us-west4:converter-db" 
+
+SERVICE_URL=$( gcloud run services describe web-converter --platform managed --region us-west4 --format "value(status.url)" )
+echo $SERVICE_URL
+
+
+WORKER
+======
+
+git clone https://github.com/magon-miso/MISW-4204-202215-backend-format-converter-tool.git
+cd MISW-4204-202215-backend-format-converter-tool/
+
+git branch -a
+git checkout develop
+git pull origin develop
+
+cd converter-async
+
+gcloud run deploy worker \
+  --source . \
+  --port 5000 \
+  --max-instances=3 \
+  --platform managed \
+  --region us-west4 \
+  --allow-unauthenticated \
+  --add-cloudsql-instances=formatconvertertool-entrega2:us-west4:converter-db \
+  --set-env-vars "EMAIL_ENABLED=false" \
+  --set-env-vars "AUDIO_BUCKET=format-converter-4204-bucket" \
+  --set-env-vars "DATABASE_URL_ASYNC=postgresql+psycopg2://postgres:converter@localhost/converter-dev?host=/cloudsql/formatconvertertool-entrega2:us-west4:converter-db"
+
+
+gcloud run services add-iam-policy-binding worker \
+--member=serviceAccount:73401938440@cloudbuild.gserviceaccount.com \
+--role=roles/run.invoker
+
+
+gcloud pubsub subscriptions create workerSubscription --topic audio-task \
+--ack-deadline=60 \
+--push-endpoint=https://worker-q6wmxhymzq-wn.a.run.app/ \
+--push-auth-service-account=73401938440@cloudbuild.gserviceaccount.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

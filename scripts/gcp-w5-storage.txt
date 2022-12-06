@@ -1,0 +1,60 @@
+mango226-bucket
+format-converter-4204-bucket
+
+Crea un bucket	
+Cloud Storage > Buckets. Haz clic en CREAR BUCKET.
+Los nombres de depósitos solo deben contener letras en minúscula, números, guiones (-), guiones bajos (_) y puntos (.). Los nombres que contengan puntos requieren verificación.
+
+Configura el Tipo de ubicación como Multirregional.
+Configura la Ubicación como EE.UU. (varias regiones en Estados Unidos).
+Haz clic en CONTINUAR.
+Configura la Clase de almacenamiento predeterminada como Estándar.
+Haz clic en CONTINUAR.
+
+Si es necesario, desmarca Aplicar la prevención de acceso público a este bucket en Impedir acceso público.
+Selecciona Detallado en Control de acceso.
+Haz clic en CONTINUAR.
+Desplázate hasta el final y haz clic en CREAR.
+
+
+Tarea 1. Sube un objeto al bucket
+
+Usa Cloud Shell para subir un objeto a un bucket. Para descargar esta imagen (ada.jpg) al bucket, ingresa este comando a Cloud Shell:
+
+curl https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Ada_Lovelace_portrait.jpg/800px-Ada_Lovelace_portrait.jpg --output ada.jpg
+
+gsutil cp ada.jpg gs://mango226-bucket
+
+rm ada.jpg
+
+
+Tarea 2. Descarga un objeto desde el bucket
+
+gsutil cp -r gs://mango226-bucket/ada.jpg .
+
+
+Tarea 3. Copia un objeto a una carpeta del bucket
+
+gsutil cp gs://mango226-bucket/ada.jpg gs://mango226-bucket/image-folder/
+
+
+Tarea 4. Muestra el contenido de un bucket o una carpeta
+
+gsutil ls gs://mango226-bucket
+
+
+Tarea 5. Muestra los detalles de un objeto
+
+gsutil ls -l gs://mango226-bucket/ada.jpg
+
+
+Tarea 6. Permite el acceso público al objeto
+
+gsutil acl ch -u AllUsers:R gs://mango226-bucket/ada.jpg
+
+
+
+
+gsutil acl ch -d AllUsers gs://mango226-bucket/ada.jpg
+
+gsutil rm gs://mango226-bucket/ada.jpg

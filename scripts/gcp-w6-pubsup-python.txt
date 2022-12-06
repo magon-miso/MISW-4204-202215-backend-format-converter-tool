@@ -1,0 +1,79 @@
+El servicio Google Cloud Pub/Sub permite que las aplicaciones intercambien mensajes de forma confiable, rápida y asíncrona. Para ello, un productor de datos publica mensajes en un tema de Cloud Pub/Sub. Luego, un cliente suscriptor crea una suscripción al tema y consume mensajes desde la suscripción. Cloud Pub/Sub conserva durante un máximo de siete días los mensajes que no se pudieron entregar de forma confiable.
+
+En este lab, aprenderá cómo comenzar a publicar mensajes con Cloud Pub/Sub mediante la biblioteca cliente de Python.
+
+En este lab, realizará lo siguiente:
+
+- Aprenderá los conceptos básicos de Pub/Sub.
+- Creará un tema de Pub/Sub y obtendrá una lista en la que aparecerá el tema.
+- Creará una suscripción de Pub/Sub y obtendrá una lista en la que aparecerá la suscripción.
+- Publicará mensajes en un tema.
+- Usará un suscriptor de extracción para obtener mensajes de temas específicos.
+
+
+Tarea 1: Cree un entorno virtual
+
+sudo apt-get install -y virtualenv
+python3 -m venv venv
+source venv/bin/activate
+
+
+Tarea 2: Instale la biblioteca cliente
+
+pip install --upgrade google-cloud-pubsub
+git clone https://github.com/googleapis/python-pubsub.git
+cd python-pubsub/samples/snippets
+
+
+Tarea 3: Conceptos básicos de Pub/Sub
+
+Google Cloud Pub/Sub es un servicio de mensajería global asíncrono. Existen tres términos que aparecen con frecuencia en Pub/Sub: temas, publicar y suscribirse.
+
+Un tema es una string compartida que permite que las aplicaciones se conecten entre sí a través de una conversación en común.
+
+Los publicadores envían (o publican) un mensaje en un tema de Cloud Pub/Sub. Luego, los suscriptores se suscriben a esa conversación, en la que pueden extraer mensajes del tema o configurar webhooks para suscripciones de envío. Los suscriptores deben confirmar recepción de cada mensaje en el transcurso de un período configurable.
+
+En resumen, un publicador crea y envía mensajes a un tema, y un suscriptor crea una suscripción a un tema para recibir mensajes de este.
+
+
+Tarea 4: Cree un tema
+
+echo $GOOGLE_CLOUD_PROJECT
+
+cat publisher.py
+
+python publisher.py -h
+
+python publisher.py $GOOGLE_CLOUD_PROJECT create MyTopic
+
+python publisher.py $GOOGLE_CLOUD_PROJECT list
+
+vaya a Menú de navegación > Pub/Sub > Temas.
+
+
+Tarea 5: Cree una suscripción
+
+python subscriber.py $GOOGLE_CLOUD_PROJECT create MyTopic MySub
+
+python subscriber.py $GOOGLE_CLOUD_PROJECT list-in-project
+
+En el panel de la izquierda, haga clic en Suscripciones. Debería ver el nombre de la suscripción y otros detalles.
+
+python subscriber.py -h
+
+
+Tarea 6: Publique mensajes
+
+gcloud pubsub topics publish MyTopic --message "Hello"
+
+gcloud pubsub topics publish MyTopic --message "Publisher's name is magon"
+
+gcloud pubsub topics publish MyTopic --message "Publisher likes to eat carnes"
+
+gcloud pubsub topics publish MyTopic --message "Publisher thinks Pub/Sub is awesome"
+
+
+Tarea 7: Visualice los mensajes
+
+python subscriber.py $GOOGLE_CLOUD_PROJECT receive MySub
+
